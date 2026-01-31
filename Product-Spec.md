@@ -192,10 +192,10 @@
 ## 技术栈建议
 
 ### 前端
-- 桌面 UI：Tauri + Web UI 或 Electron + Web UI（优先选择能良好支持系统密钥存储与自动更新的方案）
+- 桌面 UI：Tauri + Web UI（确定采用 Tauri 打包）
 
 ### 后端
-- 本地 API/业务层：与桌面框架配套（Tauri/Rust 或 Node.js），封装 Cloudflare 与 DNSPod API
+- 本地 API/业务层：与 Tauri 配套（Rust），封装 Cloudflare 与 DNSPod API
 
 ### 数据库
 - 本地存储：SQLite 或 JSON 文件（凭据采用加密后存储）
@@ -216,7 +216,7 @@
 
 ---
 
-**文档版本**：0.1.0
+**文档版本**：0.1.1
 
 **最后更新**：2026-01-31
 
