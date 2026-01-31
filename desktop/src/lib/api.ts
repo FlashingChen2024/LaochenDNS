@@ -95,19 +95,19 @@ export async function getVaultStatus(): Promise<VaultStatus> {
 }
 
 export async function initializeVault(masterPassword: string): Promise<void> {
-  return invoke("vault_initialize", { master_password: masterPassword });
+  return invoke("vault_initialize", { masterPassword });
 }
 
 export async function unlockVault(masterPassword: string): Promise<void> {
-  return invoke("vault_unlock", { master_password: masterPassword });
+  return invoke("vault_unlock", { masterPassword });
 }
 
 export async function getIntegrations(masterPassword: string): Promise<IntegrationsInfo> {
-  return invoke("integrations_get", { master_password: masterPassword });
+  return invoke("integrations_get", { masterPassword });
 }
 
 export async function testCloudflare(email: string, apiKey: string): Promise<IntegrationTestResult> {
-  return invoke("cloudflare_test", { email, api_key: apiKey });
+  return invoke("cloudflare_test", { email, apiKey });
 }
 
 export async function saveCloudflare(
@@ -115,15 +115,15 @@ export async function saveCloudflare(
   email: string,
   apiKey: string,
 ): Promise<void> {
-  return invoke("cloudflare_save", { master_password: masterPassword, email, api_key: apiKey });
+  return invoke("cloudflare_save", { masterPassword, email, apiKey });
 }
 
 export async function clearCloudflare(masterPassword: string): Promise<void> {
-  return invoke("cloudflare_clear", { master_password: masterPassword });
+  return invoke("cloudflare_clear", { masterPassword });
 }
 
 export async function testDnspod(tokenId: string, token: string): Promise<IntegrationTestResult> {
-  return invoke("dnspod_test", { token_id: tokenId, token });
+  return invoke("dnspod_test", { tokenId, token });
 }
 
 export async function saveDnspod(
@@ -131,11 +131,11 @@ export async function saveDnspod(
   tokenId: string,
   token: string,
 ): Promise<void> {
-  return invoke("dnspod_save", { master_password: masterPassword, token_id: tokenId, token });
+  return invoke("dnspod_save", { masterPassword, tokenId, token });
 }
 
 export async function clearDnspod(masterPassword: string): Promise<void> {
-  return invoke("dnspod_clear", { master_password: masterPassword });
+  return invoke("dnspod_clear", { masterPassword });
 }
 
 export async function listDomains(
@@ -144,8 +144,8 @@ export async function listDomains(
   search: string,
 ): Promise<DomainItem[]> {
   return invoke("domains_list", {
-    master_password: masterPassword,
-    provider_filter: providerFilter ?? undefined,
+    masterPassword,
+    providerFilter: providerFilter ?? undefined,
     search: search || undefined,
   });
 }
@@ -157,10 +157,10 @@ export async function listRecords(
   domainName: string,
 ): Promise<DnsRecord[]> {
   return invoke("records_list", {
-    master_password: masterPassword,
+    masterPassword,
     provider,
-    domain_id: domainId,
-    domain_name: domainName,
+    domainId,
+    domainName,
   });
 }
 
@@ -172,10 +172,10 @@ export async function createRecord(
   req: RecordCreateRequest,
 ): Promise<DnsRecord> {
   return invoke("record_create", {
-    master_password: masterPassword,
+    masterPassword,
     provider,
-    domain_id: domainId,
-    domain_name: domainName,
+    domainId,
+    domainName,
     req,
   });
 }
@@ -188,10 +188,10 @@ export async function updateRecord(
   req: RecordUpdateRequest,
 ): Promise<DnsRecord> {
   return invoke("record_update", {
-    master_password: masterPassword,
+    masterPassword,
     provider,
-    domain_id: domainId,
-    domain_name: domainName,
+    domainId,
+    domainName,
     req,
   });
 }
@@ -203,9 +203,9 @@ export async function deleteRecord(
   recordId: string,
 ): Promise<void> {
   return invoke("record_delete", {
-    master_password: masterPassword,
+    masterPassword,
     provider,
-    domain_id: domainId,
-    record_id: recordId,
+    domainId,
+    recordId,
   });
 }
