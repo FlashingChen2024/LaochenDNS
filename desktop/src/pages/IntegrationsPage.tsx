@@ -4,6 +4,7 @@ import {
   clearCloudflare,
   clearDnspod,
   getIntegrations,
+  resolveErrorMessage,
   saveCloudflare,
   saveDnspod,
   testCloudflare,
@@ -13,7 +14,7 @@ import {
 } from "../lib/api";
 
 export function IntegrationsPage() {
-  const { masterPassword } = useApp();
+  const { masterPassword, notifyError, notifySuccess } = useApp();
   const [data, setData] = useState<IntegrationsInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,8 @@ export function IntegrationsPage() {
       const v = await getIntegrations(masterPassword);
       setData(v);
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
     }
   };
 
@@ -61,7 +63,7 @@ export function IntegrationsPage() {
       const r = await testCloudflare(cfEmail, cfApiKey);
       setCfTest(r);
     } catch (e) {
-      setCfTest({ ok: false, message: String(e) });
+      setCfTest({ ok: false, message: resolveErrorMessage(e) });
     }
   };
 
@@ -71,7 +73,7 @@ export function IntegrationsPage() {
       const r = await testDnspod(dpTokenId, dpToken);
       setDpTest(r);
     } catch (e) {
-      setDpTest({ ok: false, message: String(e) });
+      setDpTest({ ok: false, message: resolveErrorMessage(e) });
     }
   };
 
@@ -82,9 +84,12 @@ export function IntegrationsPage() {
     try {
       await saveCloudflare(masterPassword, cfEmail, cfApiKey);
       setCfApiKey("");
+      notifySuccess("Cloudflare 凭据保存成功");
       await load();
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -97,9 +102,12 @@ export function IntegrationsPage() {
     try {
       await saveDnspod(masterPassword, dpTokenId, dpToken);
       setDpToken("");
+      notifySuccess("DNSPod 凭据保存成功");
       await load();
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -111,9 +119,12 @@ export function IntegrationsPage() {
     setError(null);
     try {
       await clearCloudflare(masterPassword);
+      notifySuccess("Cloudflare 凭据已清除");
       await load();
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -125,9 +136,12 @@ export function IntegrationsPage() {
     setError(null);
     try {
       await clearDnspod(masterPassword);
+      notifySuccess("DNSPod 凭据已清除");
       await load();
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }

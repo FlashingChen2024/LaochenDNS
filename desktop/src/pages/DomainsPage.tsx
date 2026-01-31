@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
-import { listDomains, type DomainItem, type Provider } from "../lib/api";
+import { listDomains, resolveErrorMessage, type DomainItem, type Provider } from "../lib/api";
 
 function statusPill(status: DomainItem["status"]) {
   switch (status) {
@@ -25,7 +25,7 @@ function providerLabel(p: Provider) {
 }
 
 export function DomainsPage() {
-  const { masterPassword } = useApp();
+  const { masterPassword, notifyError } = useApp();
   const navigate = useNavigate();
   const [provider, setProvider] = useState<Provider | "all">("all");
   const [search, setSearch] = useState("");
@@ -41,7 +41,9 @@ export function DomainsPage() {
       const data = await listDomains(masterPassword, provider === "all" ? null : provider, search);
       setRows(data);
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }

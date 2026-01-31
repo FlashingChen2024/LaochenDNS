@@ -6,6 +6,7 @@ import {
   createRecord,
   deleteRecord,
   listRecords,
+  resolveErrorMessage,
   updateRecord,
   type ConflictStrategy,
   type DnsRecord,
@@ -21,7 +22,7 @@ function providerLabel(p: Provider) {
 }
 
 export function RecordsPage() {
-  const { masterPassword } = useApp();
+  const { masterPassword, notifyError, notifySuccess } = useApp();
   const params = useParams();
   const [searchParams] = useSearchParams();
   const provider = params.provider as Provider;
@@ -42,7 +43,7 @@ export function RecordsPage() {
       const data = await listRecords(masterPassword, provider, domainId, domainName);
       setRows(data);
     } catch (e) {
-      setError(String(e));
+      setError(resolveErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -65,9 +66,12 @@ export function RecordsPage() {
     setError(null);
     try {
       await deleteRecord(masterPassword, provider, domainId, r.id);
+      notifySuccess("记录删除成功");
       await load();
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -140,13 +144,13 @@ export function RecordsPage() {
           onSubmit={async (req) => {
             if (!masterPassword) return;
             setBusy(true);
-            setError(null);
             try {
               await createRecord(masterPassword, provider, domainId, domainName, req);
-              setCreating(false);
+              notifySuccess("记录新增成功");
               await load();
             } catch (e) {
-              setError(String(e));
+              notifyError(e);
+              throw e;
             } finally {
               setBusy(false);
             }
@@ -162,7 +166,6 @@ export function RecordsPage() {
           onSubmit={async (req) => {
             if (!masterPassword || !editing) return;
             setBusy(true);
-            setError(null);
             try {
               const update: RecordUpdateRequest = {
                 id: editing.id,
@@ -178,10 +181,11 @@ export function RecordsPage() {
                 caa_tag: req.caa_tag ?? null,
               };
               await updateRecord(masterPassword, provider, domainId, domainName, update);
-              setEditing(null);
+              notifySuccess("记录更新成功");
               await load();
             } catch (e) {
-              setError(String(e));
+              notifyError(e);
+              throw e;
             } finally {
               setBusy(false);
             }
@@ -192,7 +196,7 @@ export function RecordsPage() {
   );
 }
 
-function RecordModal({
+export function RecordModal({
   title,
   initial,
   onClose,
@@ -243,8 +247,9 @@ function RecordModal({
         req.caa_tag = caaTag;
       }
       await onSubmit(req);
+      onClose();
     } catch (e) {
-      setError(String(e));
+      setError(resolveErrorMessage(e));
     } finally {
       setBusy(false);
     }

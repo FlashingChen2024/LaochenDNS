@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { initializeVault } from "../lib/api";
+import { initializeVault, resolveErrorMessage } from "../lib/api";
 import { useApp } from "../app/AppContext";
 
 export function SetupPage() {
-  const { refreshVaultStatus, setMasterPassword } = useApp();
+  const { refreshVaultStatus, setMasterPassword, notifyError, notifySuccess } = useApp();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,8 +24,11 @@ export function SetupPage() {
       await initializeVault(password);
       setMasterPassword(password);
       await refreshVaultStatus();
+      notifySuccess("主密码已设置");
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -67,4 +70,3 @@ export function SetupPage() {
     </div>
   );
 }
-

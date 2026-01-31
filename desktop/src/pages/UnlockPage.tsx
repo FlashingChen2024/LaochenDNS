@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { unlockVault } from "../lib/api";
+import { resolveErrorMessage, unlockVault } from "../lib/api";
 import { useApp } from "../app/AppContext";
 
 export function UnlockPage() {
-  const { setMasterPassword } = useApp();
+  const { setMasterPassword, notifyError, notifySuccess } = useApp();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,8 +21,11 @@ export function UnlockPage() {
     try {
       await unlockVault(password);
       setMasterPassword(password);
+      notifySuccess("已解锁");
     } catch (e) {
-      setError(String(e));
+      const message = resolveErrorMessage(e);
+      setError(message);
+      notifyError(message);
     } finally {
       setBusy(false);
     }
@@ -53,4 +56,3 @@ export function UnlockPage() {
     </div>
   );
 }
-
