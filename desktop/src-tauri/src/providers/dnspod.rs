@@ -94,7 +94,7 @@ impl DnspodClient {
         params.insert("domain_id".to_string(), domain_id.to_string());
         params.insert("sub_domain".to_string(), req.name.clone());
         params.insert("record_type".to_string(), req.record_type.clone());
-        params.insert("record_line".to_string(), "default".to_string());
+        params.insert("record_line".to_string(), "默认".to_string());
         params.insert("value".to_string(), dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref()));
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
@@ -128,7 +128,7 @@ impl DnspodClient {
         params.insert("record_id".to_string(), req.id.clone());
         params.insert("sub_domain".to_string(), req.name.clone());
         params.insert("record_type".to_string(), req.record_type.clone());
-        params.insert("record_line".to_string(), "default".to_string());
+        params.insert("record_line".to_string(), "默认".to_string());
         params.insert("value".to_string(), dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref()));
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
