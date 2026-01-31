@@ -90,6 +90,21 @@ export type AppError = {
   message: string;
 };
 
+export function resolveErrorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === "string") return maybeMessage;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
 export async function getVaultStatus(): Promise<VaultStatus> {
   return invoke("vault_status");
 }

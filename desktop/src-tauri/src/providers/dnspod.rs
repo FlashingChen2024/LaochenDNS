@@ -6,7 +6,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::Deserialize;
 use std::collections::HashMap;
 
-const API_BASE: &str = "https://api.dnspod.com";
+const API_BASE: &str = "https://dnsapi.cn";
 
 pub struct DnspodClient {
     client: reqwest::Client,
@@ -32,6 +32,10 @@ impl DnspodClient {
         headers.insert(
             "Content-Type",
             HeaderValue::from_static("application/x-www-form-urlencoded"),
+        );
+        headers.insert(
+            "login_token",
+            HeaderValue::from_str(&self.login_token()).unwrap(),
         );
         headers
     }
