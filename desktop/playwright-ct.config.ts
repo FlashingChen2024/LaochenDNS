@@ -6,8 +6,8 @@ export default defineConfig({
   use: {
     viewport: { width: 1200, height: 800 },
     channel: "msedge",
-  },
-  ctViteConfig: {
-    plugins: [react()],
+    ctViteConfig: {
+      plugins: [react()],
+    },
   },
 });

@@ -3,6 +3,7 @@ use crate::types::{DnsRecord, DomainItem, DomainStatus, Provider, RecordCreateRe
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use reqwest::header::{HeaderMap, HeaderValue};
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -77,14 +78,14 @@ impl DnspodClient {
             .send()
             .await
             .map_err(AppError::from)?;
-        let parsed: DnspodRecordListResponse = res.json().await.map_err(AppError::from)?;
+        let parsed: DnspodRecordListResponse = parse_response(res).await?;
         ensure_ok(&parsed.status)?;
 
         Ok(parsed
             .records
             .unwrap_or_default()
             .into_iter()
-            .map(|r| r.to_dns_record(domain_name))
+            .map(|r| r.to_dns_record(domain_name, None, None, None, None))
             .collect())
     }
 
@@ -95,7 +96,8 @@ impl DnspodClient {
         params.insert("sub_domain".to_string(), req.name.clone());
         params.insert("record_type".to_string(), req.record_type.clone());
         params.insert("record_line".to_string(), "默认".to_string());
-        params.insert("value".to_string(), dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref()));
+        let value = dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref());
+        params.insert("value".to_string(), value.clone());
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
             if let Some(mx) = req.mx_priority {
@@ -111,14 +113,14 @@ impl DnspodClient {
             .send()
             .await
             .map_err(AppError::from)?;
-        let parsed: DnspodRecordCreateResponse = res.json().await.map_err(AppError::from)?;
+        let parsed: DnspodRecordCreateResponse = parse_response(res).await?;
         ensure_ok(&parsed.status)?;
 
         let record = parsed
             .record
             .context("missing record")
             .map_err(AppError::from)?;
-        Ok(record.to_dns_record(domain_name))
+        Ok(record.to_dns_record(domain_name, Some(&req.record_type), Some(value), Some(req.ttl), req.mx_priority))
     }
 
     pub async fn update_record(&self, domain_id: &str, domain_name: &str, req: &RecordUpdateRequest) -> Result<DnsRecord, AppError> {
@@ -129,7 +131,8 @@ impl DnspodClient {
         params.insert("sub_domain".to_string(), req.name.clone());
         params.insert("record_type".to_string(), req.record_type.clone());
         params.insert("record_line".to_string(), "默认".to_string());
-        params.insert("value".to_string(), dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref()));
+        let value = dnspod_value(&req.record_type, &req.content, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref());
+        params.insert("value".to_string(), value.clone());
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
             if let Some(mx) = req.mx_priority {
@@ -145,14 +148,14 @@ impl DnspodClient {
             .send()
             .await
             .map_err(AppError::from)?;
-        let parsed: DnspodRecordModifyResponse = res.json().await.map_err(AppError::from)?;
+        let parsed: DnspodRecordModifyResponse = parse_response(res).await?;
         ensure_ok(&parsed.status)?;
 
         let record = parsed
             .record
             .context("missing record")
             .map_err(AppError::from)?;
-        Ok(record.to_dns_record(domain_name))
+        Ok(record.to_dns_record(domain_name, Some(&req.record_type), Some(value), Some(req.ttl), req.mx_priority))
     }
 
     pub async fn delete_record(&self, domain_id: &str, record_id: &str) -> Result<(), AppError> {
@@ -168,7 +171,7 @@ impl DnspodClient {
             .send()
             .await
             .map_err(AppError::from)?;
-        let parsed: DnspodStatusResponse = res.json().await.map_err(AppError::from)?;
+        let parsed: DnspodStatusResponse = parse_response(res).await?;
         ensure_ok(&parsed.status)?;
         Ok(())
     }
@@ -184,7 +187,7 @@ impl DnspodClient {
             .send()
             .await
             .map_err(AppError::from)?;
-        let parsed: DnspodDomainListResponse = res.json().await.map_err(AppError::from)?;
+        let parsed: DnspodDomainListResponse = parse_response(res).await?;
         ensure_ok(&parsed.status)?;
         Ok(parsed.domains.unwrap_or_default())
     }
@@ -203,6 +206,28 @@ fn ensure_ok(status: &DnspodStatus) -> Result<(), AppError> {
     } else {
         Err(AppError::new("auth_failed", status.message.clone()))
     }
+}
+
+async fn parse_response<T: DeserializeOwned>(res: reqwest::Response) -> Result<T, AppError> {
+    let status = res.status();
+    let text = res.text().await.map_err(AppError::from)?;
+    if !status.is_success() {
+        return Err(AppError::new(
+            "http_error",
+            format!(
+                "HTTP {}: {} (response text: {})",
+                status.as_u16(),
+                status.canonical_reason().unwrap_or("Unknown"),
+                text
+            ),
+        ));
+    }
+    serde_json::from_str::<T>(&text).map_err(|e| {
+        AppError::new(
+            "json_decode_failed",
+            format!("Failed to decode response: {} (response text: {})", e, text),
+        )
+    })
 }
 
 fn parse_ymd_hms(value: &str) -> Result<DateTime<Utc>, anyhow::Error> {
@@ -285,16 +310,28 @@ struct DnspodRecord {
     id: String,
     name: String,
     #[serde(rename = "type")]
-    record_type: String,
-    value: String,
-    ttl: String,
+    record_type: Option<String>,
+    value: Option<String>,
+    ttl: Option<String>,
     mx: Option<String>,
 }
 
 impl DnspodRecord {
-    fn to_dns_record(self, domain_name: &str) -> DnsRecord {
-        let (content, srv_priority, srv_weight, srv_port) = if self.record_type == "SRV" {
-            let parts: Vec<&str> = self.value.split_whitespace().collect();
+    fn to_dns_record(
+        self,
+        domain_name: &str,
+        default_record_type: Option<&str>,
+        default_value: Option<String>,
+        default_ttl: Option<u32>,
+        default_mx: Option<u16>,
+    ) -> DnsRecord {
+        let record_type = self
+            .record_type
+            .or_else(|| default_record_type.map(|v| v.to_string()))
+            .unwrap_or_else(|| "A".to_string());
+        let value = self.value.or(default_value).unwrap_or_default();
+        let (content, srv_priority, srv_weight, srv_port) = if record_type == "SRV" {
+            let parts: Vec<&str> = value.split_whitespace().collect();
             if parts.len() >= 4 {
                 (
                     parts[3..].join(" "),
@@ -303,14 +340,14 @@ impl DnspodRecord {
                     parts[2].parse::<u16>().ok(),
                 )
             } else {
-                (self.value.clone(), None, None, None)
+                (value.clone(), None, None, None)
             }
         } else {
-            (self.value.clone(), None, None, None)
+            (value.clone(), None, None, None)
         };
 
-        let (caa_flags, caa_tag, caa_value) = if self.record_type == "CAA" {
-            let parts: Vec<&str> = self.value.split_whitespace().collect();
+        let (caa_flags, caa_tag, caa_value) = if record_type == "CAA" {
+            let parts: Vec<&str> = value.split_whitespace().collect();
             if parts.len() >= 3 {
                 (
                     parts[0].parse::<u8>().ok(),
@@ -318,7 +355,7 @@ impl DnspodRecord {
                     parts[2..].join(" "),
                 )
             } else {
-                (None, None, self.value.clone())
+                (None, None, value.clone())
             }
         } else {
             (None, None, content.clone())
@@ -328,11 +365,15 @@ impl DnspodRecord {
             id: self.id,
             provider: Provider::Dnspod,
             domain: domain_name.to_string(),
-            record_type: self.record_type.clone(),
+            record_type,
             name: self.name,
             content: caa_value,
-            ttl: self.ttl.parse::<u32>().unwrap_or(600),
-            mx_priority: self.mx.and_then(|v| v.parse::<u16>().ok()),
+            ttl: self
+                .ttl
+                .and_then(|v| v.parse::<u32>().ok())
+                .or(default_ttl)
+                .unwrap_or(600),
+            mx_priority: self.mx.and_then(|v| v.parse::<u16>().ok()).or(default_mx),
             srv_priority,
             srv_weight,
             srv_port,
