@@ -1,0 +1,564 @@
+    <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="LaoChenDNS - 本地DNS聚合管理工具，统一管理Cloudflare与DNSPod域名解析">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>LaoChenDNS - 让域名管理回归简洁与掌控</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="favicon.ico" alt="LaoChenDNS" class="logo-icon-img">
+                <span class="logo-text">LaoChenDNS</span>
+            </a>
+            <div class="nav-links" id="nav-links">
+                <a href="#features" class="nav-link">功能</a>
+                <a href="#security" class="nav-link">安全</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#download" class="nav-link nav-link-primary">下载</a>
+            </div>
+            <button class="nav-toggle" id="nav-toggle" aria-label="切换导航">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+    </nav>
+
+    <header class="hero" id="hero">
+        <div class="hero-bg">
+            <div class="hero-shape hero-shape-1"></div>
+            <div class="hero-shape hero-shape-2"></div>
+            <div class="hero-shape hero-shape-3"></div>
+        </div>
+        <div class="hero-grid"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-tag">
+                        <span class="tag-indicator"></span>
+                        <span>专为个人站长打造</span>
+                    </div>
+                    <h1 class="hero-title">
+                        <span class="title-line">让域名管理</span>
+                        <span class="title-line title-line-accent">回归简洁与掌控</span>
+                    </h1>
+                    <p class="hero-description">
+                        本地优先的 DNS 管理工具。一次配置，永久免登录。告别浏览器加载、二次认证与平台切换的烦恼。
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#download" class="btn btn-primary btn-lg">
+                            <i data-lucide="download"></i>
+                            <span>免费下载</span>
+                        </a>
+                        <a href="#features" class="btn btn-ghost btn-lg">
+                            <span>了解更多</span>
+                            <i data-lucide="arrow-right"></i>
+                        </a>
+                    </div>
+
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-graphic">
+                        <div class="graphic-ring graphic-ring-outer"></div>
+                        <div class="graphic-ring graphic-ring-middle"></div>
+                        <div class="graphic-ring graphic-ring-inner"></div>
+                        <div class="graphic-nodes">
+                            <div class="node node-cf">
+                                <i data-lucide="monitor"></i>
+                                <span>本地应用</span>
+                            </div>
+                            <div class="node node-center">
+                                <i data-lucide="zap"></i>
+                            </div>
+                            <div class="node node-dp">
+                                <i data-lucide="unlock"></i>
+                                <span>免登录</span>
+                            </div>
+                        </div>
+                        <svg class="graphic-lines" viewBox="0 0 400 300">
+                            <line class="graphic-line" x1="80" y1="150" x2="160" y2="150"/>
+                            <line class="graphic-line" x1="240" y1="150" x2="320" y2="150"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-scroll">
+            <div class="scroll-indicator">
+                <div class="scroll-mouse">
+                    <div class="scroll-wheel"></div>
+                </div>
+                <span class="scroll-text">向下滚动</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="section section-painpoints" id="painpoints">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">痛点</span>
+                <h2 class="section-title">浏览器管理的<br><span class="text-accent">低效循环</span></h2>
+            </div>
+            <div class="painpoints-grid">
+                <div class="painpoint-card" data-reveal>
+                    <div class="painpoint-icon painpoint-icon-1">
+                        <i data-lucide="repeat"></i>
+                    </div>
+                    <h3 class="painpoint-title">二次认证</h3>
+                    <p class="painpoint-desc">每次打开浏览器都要重新登录、输入 MFA 验证码，同样的流程重复一遍又一遍。</p>
+                </div>
+                <div class="painpoint-card" data-reveal>
+                    <div class="painpoint-icon painpoint-icon-2">
+                        <i data-lucide="clock"></i>
+                    </div>
+                    <h3 class="painpoint-title">等待加载</h3>
+                    <p class="painpoint-desc">打开浏览器、输入网址、等待页面加载、再点击菜单...一个简单的操作要等待几十秒。</p>
+                </div>
+                <div class="painpoint-card" data-reveal>
+                    <div class="painpoint-icon painpoint-icon-3">
+                        <i data-lucide="globe"></i>
+                    </div>
+                    <h3 class="painpoint-title">网络依赖</h3>
+                    <p class="painpoint-desc">部分平台需要特定网络环境才能访问，没有 VPN 就无法管理自己的域名。</p>
+                </div>
+                <div class="painpoint-card" data-reveal>
+                    <div class="painpoint-icon painpoint-icon-4">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <h3 class="painpoint-title">操作繁琐</h3>
+                    <p class="painpoint-desc">Web 界面复杂臃肿，找一个功能要点三四次，简单的事情变得复杂。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-features" id="features">
+        <div class="container">
+            <div class="section-header section-header-center">
+                <span class="section-tag">功能</span>
+                <h2 class="section-title">本地优先，<span class="text-accent">极速体验</span></h2>
+                <p class="section-desc">像使用本地应用一样管理 DNS，无需浏览器，无需等待，开箱即用</p>
+            </div>
+            
+            <div class="feature-block feature-block-left" data-reveal>
+                <div class="feature-visual">
+                    <div class="feature-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="mockup-title">服务商配置</span>
+                        </div>
+                        <div class="mockup-content">
+                            <div class="mockup-provider mockup-provider-active">
+                                <div class="provider-icon provider-cf">
+                                    <i data-lucide="cloud"></i>
+                                </div>
+                                <div class="provider-info">
+                                    <span class="provider-name">Cloudflare</span>
+                                    <span class="provider-status">已连接</span>
+                                </div>
+                                <i data-lucide="check-circle" class="provider-check"></i>
+                            </div>
+                            <div class="mockup-provider">
+                                <div class="provider-icon provider-dp">
+                                    <i data-lucide="server"></i>
+                                </div>
+                                <div class="provider-info">
+                                    <span class="provider-name">DNSPod</span>
+                                    <span class="provider-status">点击配置</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="feature-content">
+                    <div class="feature-tag">01</div>
+                    <h3 class="feature-title">永久免登录</h3>
+                    <p class="feature-desc">一次配置，永久使用。API 凭据本地加密存储，启动即自动连接，彻底告别反复登录与 MFA 验证。</p>
+                    <ul class="feature-list">
+                        <li><i data-lucide="check"></i>启动即用，无需等待</li>
+                        <li><i data-lucide="check"></i>本地加密存储凭据</li>
+                        <li><i data-lucide="check"></i>零二次认证干扰</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="feature-block feature-block-right" data-reveal>
+                <div class="feature-content">
+                    <div class="feature-tag">02</div>
+                    <h3 class="feature-title">极速本地体验</h3>
+                    <p class="feature-desc">原生桌面应用，毫秒级响应。告别浏览器加载、页面跳转、JavaScript 等待，操作即点即得。</p>
+                    <ul class="feature-list">
+                        <li><i data-lucide="check"></i>毫秒级界面响应</li>
+                        <li><i data-lucide="check"></i>键盘快捷键支持</li>
+                        <li><i data-lucide="check"></i>离线查看缓存</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="feature-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="mockup-title">域名列表</span>
+                        </div>
+                        <div class="mockup-content mockup-content-list">
+                            <div class="mockup-domain">
+                                <span class="domain-name">example.com</span>
+                                <span class="domain-badge domain-badge-cf">CF</span>
+                                <span class="domain-count">12 记录</span>
+                            </div>
+                            <div class="mockup-domain">
+                                <span class="domain-name">myproject.io</span>
+                                <span class="domain-badge domain-badge-dp">DP</span>
+                                <span class="domain-count">8 记录</span>
+                            </div>
+                            <div class="mockup-domain">
+                                <span class="domain-name">blog.dev</span>
+                                <span class="domain-badge domain-badge-cf">CF</span>
+                                <span class="domain-count">5 记录</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-block feature-block-left" data-reveal>
+                <div class="feature-visual">
+                    <div class="feature-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="mockup-title">解析记录</span>
+                        </div>
+                        <div class="mockup-content mockup-content-records">
+                            <div class="mockup-record">
+                                <span class="record-type record-type-a">A</span>
+                                <span class="record-name">@</span>
+                                <span class="record-value">192.168.1.1</span>
+                            </div>
+                            <div class="mockup-record">
+                                <span class="record-type record-type-cname">CNAME</span>
+                                <span class="record-name">www</span>
+                                <span class="record-value">example.com</span>
+                            </div>
+                            <div class="mockup-record">
+                                <span class="record-type record-type-txt">TXT</span>
+                                <span class="record-name">_acme</span>
+                                <span class="record-value">v=DKIM1; k=rsa...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="feature-content">
+                    <div class="feature-tag">03</div>
+                    <h3 class="feature-title">简洁高效操作</h3>
+                    <p class="feature-desc">专注于最常用的 DNS 操作，没有复杂菜单和冗余功能。添加、修改、删除，三步完成。</p>
+                    <ul class="feature-list">
+                        <li><i data-lucide="check"></i>8 种记录类型</li>
+                        <li><i data-lucide="check"></i>批量操作支持</li>
+                        <li><i data-lucide="check"></i>实时格式校验</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="feature-block feature-block-right" data-reveal>
+                <div class="feature-content">
+                    <div class="feature-tag">04</div>
+                    <h3 class="feature-title">完全本地运行</h3>
+                    <p class="feature-desc">无需网络即可查看和管理。所有数据存储在本地，你的域名信息只属于你自己。</p>
+                    <ul class="feature-list">
+                        <li><i data-lucide="check"></i>离线查看域名列表</li>
+                        <li><i data-lucide="check"></i>本地缓存记录数据</li>
+                        <li><i data-lucide="check"></i>零数据上传云端</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="feature-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="mockup-title">本地存储</span>
+                        </div>
+                        <div class="mockup-content mockup-content-records">
+                            <div class="mockup-record">
+                                <i data-lucide="hard-drive" style="width:16px;height:16px;color:var(--color-primary)"></i>
+                                <span class="record-value">本地数据库加密存储</span>
+                            </div>
+                            <div class="mockup-record">
+                                <i data-lucide="shield" style="width:16px;height:16px;color:var(--color-primary)"></i>
+                                <span class="record-value">主密码保护访问</span>
+                            </div>
+                            <div class="mockup-record">
+                                <i data-lucide="wifi-off" style="width:16px;height:16px;color:var(--color-primary)"></i>
+                                <span class="record-value">离线模式可用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-security" id="security">
+        <div class="container">
+            <div class="security-layout">
+                <div class="security-content">
+                    <span class="section-tag">安全</span>
+                    <h2 class="section-title">本地加密，<span class="text-accent">你的数据你做主</span></h2>
+                    <p class="security-lead">所有凭据本地加密存储，主密码永不落盘。没有云端服务器，没有数据上传，没有隐私泄露风险。</p>
+                    <div class="security-features">
+                        <div class="security-feature">
+                            <div class="security-icon">
+                                <i data-lucide="lock"></i>
+                            </div>
+                            <div class="security-info">
+                                <h4>本地加密存储</h4>
+                                <p>API 密钥与 Token 经 AES 加密后落盘，主密码永不保存</p>
+                            </div>
+                        </div>
+                        <div class="security-feature">
+                            <div class="security-icon">
+                                <i data-lucide="laptop"></i>
+                            </div>
+                            <div class="security-info">
+                                <h4>零云端上传</h4>
+                                <p>无任何 Telemetry，无任何远程服务器通信</p>
+                            </div>
+                        </div>
+                        <div class="security-feature">
+                            <div class="security-icon">
+                                <i data-lucide="cpu"></i>
+                            </div>
+                            <div class="security-info">
+                                <h4>极速响应</h4>
+                                <p>原生桌面应用，毫秒级操作反馈</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="security-visual">
+                    <div class="security-lock">
+                        <div class="lock-ring lock-ring-1"></div>
+                        <div class="lock-ring lock-ring-2"></div>
+                        <div class="lock-core">
+                            <i data-lucide="shield-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header section-header-center">
+                <span class="section-tag">评价</span>
+                <h2 class="section-title">站长们<span class="text-accent">怎么说</span></h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card" data-reveal>
+                    <div class="testimonial-quote">
+                        <i data-lucide="quote"></i>
+                    </div>
+                    <p class="testimonial-text">再也不用每次打开浏览器、等页面加载、再输入 MFA 了。双击打开软件直接就能改解析，这种体验太爽了。</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/id/64/100/100" alt="用户头像" class="testimonial-avatar">
+                        <div class="testimonial-meta">
+                            <span class="testimonial-name">林开发者</span>
+                            <span class="testimonial-role">独立开发者</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-reveal>
+                    <div class="testimonial-quote">
+                        <i data-lucide="quote"></i>
+                    </div>
+                    <p class="testimonial-text">本地加密的设计让我非常放心。作为一个对隐私很敏感的人，这正是我需要的工具。</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/id/65/100/100" alt="用户头像" class="testimonial-avatar">
+                        <div class="testimonial-meta">
+                            <span class="testimonial-name">王工程师</span>
+                            <span class="testimonial-role">DevOps 工程师</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-reveal>
+                    <div class="testimonial-quote">
+                        <i data-lucide="quote"></i>
+                    </div>
+                    <p class="testimonial-text">界面简洁没有多余功能，打开就能用。比浏览器快多了，修改一条记录几秒钟搞定。</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/id/91/100/100" alt="用户头像" class="testimonial-avatar">
+                        <div class="testimonial-meta">
+                            <span class="testimonial-name">陈站长</span>
+                            <span class="testimonial-role">个人站长</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-faq" id="faq">
+        <div class="container">
+            <div class="section-header section-header-center">
+                <span class="section-tag">FAQ</span>
+                <h2 class="section-title">常见<span class="text-accent">问题</span></h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item" data-reveal>
+                    <button class="faq-question">
+                        <span>LaoChenDNS 是免费的吗？</span>
+                        <i data-lucide="plus" class="faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>是的，LaoChenDNS 完全免费且开源。我们相信基础工具应该对所有人免费开放。</p>
+                    </div>
+                </div>
+                <div class="faq-item" data-reveal>
+                    <button class="faq-question">
+                        <span>我的 API 凭据安全吗？</span>
+                        <i data-lucide="plus" class="faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>绝对安全。您的 API 凭据仅存储在本地设备，经主密码加密后保存。我们没有任何远程服务器，也不会上传任何数据。</p>
+                    </div>
+                </div>
+                <div class="faq-item" data-reveal>
+                    <button class="faq-question">
+                        <span>需要联网才能使用吗？</span>
+                        <i data-lucide="plus" class="faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>查看已缓存的域名和记录无需联网。只有执行实际修改操作时才需要连接网络与服务商 API 通信。</p>
+                    </div>
+                </div>
+                <div class="faq-item" data-reveal>
+                    <button class="faq-question">
+                        <span>忘记主密码怎么办？</span>
+                        <i data-lucide="plus" class="faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>由于采用本地加密，我们无法重置或恢复您的主密码。如果忘记密码，您需要重新初始化应用并重新配置 API 凭据。</p>
+                    </div>
+                </div>
+                <div class="faq-item" data-reveal>
+                    <button class="faq-question">
+                        <span>支持哪些平台？</span>
+                        <i data-lucide="plus" class="faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>目前支持 Windows。macOS 和 Linux 版本正在开发中。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-download" id="download">
+        <div class="container">
+            <div class="download-card">
+                <div class="download-content">
+                    <h2 class="download-title">告别浏览器，<br><span class="text-accent">开始本地管理</span></h2>
+                    <p class="download-desc">下载 LaoChenDNS，一次配置，永久免登录。几秒钟内完成 DNS 修改，不再等待。</p>
+                    <div class="download-platforms">
+                        <a href="#" class="download-btn download-btn-primary">
+                            <i data-lucide="monitor"></i>
+                            <div class="download-btn-text">
+                                <span class="download-btn-label">下载 Windows 版</span>
+                                <span class="download-btn-version">v1.0.0</span>
+                            </div>
+                        </a>
+                        <span class="download-coming">
+                            <i data-lucide="apple"></i>
+                            macOS 即将推出
+                        </span>
+                    </div>
+                    <div class="download-links">
+                        <a href="#" class="download-link">
+                            <i data-lucide="github"></i>
+                            <span>GitHub 源码</span>
+                        </a>
+                        <a href="#" class="download-link">
+                            <i data-lucide="file-text"></i>
+                            <span>使用文档</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="download-graphic">
+                    <div class="download-circle"></div>
+                    <div class="download-icon">
+                        <i data-lucide="download-cloud"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="footer-logo">
+                        <img src="favicon.ico" alt="LaoChenDNS" class="logo-icon-img">
+                        <span class="logo-text">LaoChenDNS</span>
+                    </a>
+                    <p class="footer-tagline">本地优先的 DNS 管理体验</p>
+                    <div class="footer-social">
+                        <a href="#" aria-label="GitHub">
+                            <i data-lucide="github"></i>
+                        </a>
+                        <a href="mailto:flc@lcasj.top" aria-label="邮箱">
+                            <i data-lucide="mail"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>产品</h4>
+                        <ul>
+                            <li><a href="#features">功能</a></li>
+                            <li><a href="#download">下载</a></li>
+                            <li><a href="#">更新日志</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>资源</h4>
+                        <ul>
+                            <li><a href="#">文档</a></li>
+                            <li><a href="#faq">FAQ</a></li>
+                            <li><a href="https://blog.chenyuxia.com">博客</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>关于</h4>
+                        <ul>
+                            <li><a href="#">关于我们</a></li>
+                            <li><a href="#">开源协议</a></li>
+                            <li><a href="mailto:flc@lcasj.top">联系我们</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 LaoChenDNS. 开源软件，MIT 协议。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
