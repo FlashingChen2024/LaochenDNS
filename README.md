@@ -1,5 +1,7 @@
 # LaoChenDNS
 
+![LaoChenDNS Logo](desktop/src-tauri/icons/app-icon.svg)
+
 基于 Tauri 的桌面 DNS 管理工具，集成 Cloudflare 与 DNSPod，提供域名与解析记录的一站式管理，并支持本地加密存储。
 
 项目官网：https://app.chenyuxia.com/dns/
@@ -37,3 +39,7 @@ npm run tauri dev
 cd desktop
 npm run tauri build
 ```
+
+## 许可证
+
+MIT License
