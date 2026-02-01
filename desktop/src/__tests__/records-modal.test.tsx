@@ -111,10 +111,27 @@ describe("RecordsPage modal flow", () => {
     await screen.findAllByText("暂无记录");
 
     await userEvent.click(screen.getAllByRole("button", { name: "新增记录" })[0]);
+    await userEvent.type(screen.getByLabelText("记录值（Content）"), "1.1.1.1");
     await userEvent.click(screen.getAllByRole("button", { name: "保存" })[0]);
 
     expect((await screen.findAllByText("创建失败")).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("记录值（Content）")).toBeTruthy();
+  });
+
+  it("提交空记录值时显示校验错误且不调用创建接口", async () => {
+    render(
+      <AppProvider>
+        <RecordsRoute />
+      </AppProvider>,
+    );
+
+    await screen.findAllByText("暂无记录");
+
+    await userEvent.click(screen.getByRole("button", { name: "新增记录" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(await screen.findByText("记录值不能为空")).toBeTruthy();
+    expect(mockCreateRecord).not.toHaveBeenCalled();
   });
 
   it("删除记录成功后展示成功提示", async () => {

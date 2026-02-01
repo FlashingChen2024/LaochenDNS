@@ -6,6 +6,7 @@ use crate::types::{
 };
 use crate::vault::{self, CloudflareCreds, DnspodCreds};
 use chrono::Utc;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -45,11 +46,11 @@ pub fn integrations_get(app: AppHandle, master_password: String) -> Result<Integ
     let (file, plain) = vault::decrypt_vault(&app, &master_password)?;
     let cloudflare = IntegrationInfoItem {
         configured: file.cloudflare_configured,
-        last_verified_at: plain.cloudflare.and_then(|c| c.last_verified_at),
+        last_verified_at: plain.cloudflare.as_ref().and_then(|c| c.last_verified_at.clone()),
     };
     let dnspod = IntegrationInfoItem {
         configured: file.dnspod_configured,
-        last_verified_at: plain.dnspod.and_then(|c| c.last_verified_at),
+        last_verified_at: plain.dnspod.as_ref().and_then(|c| c.last_verified_at.clone()),
     };
     Ok(IntegrationsInfo { cloudflare, dnspod })
 }
@@ -154,55 +155,127 @@ pub async fn domains_list(
     let wants_cloudflare = provider_filter.is_none() || provider_filter == Some(Provider::Cloudflare);
     let wants_dnspod = provider_filter.is_none() || provider_filter == Some(Provider::Dnspod);
 
-    if wants_cloudflare {
-        if let Some(cf) = plain.cloudflare.clone() {
-            let cf_client = CloudflareClient::new(cf.email, cf.api_key)?;
-            match cf_client.list_domains().await {
-                Ok(mut v) => items.append(&mut v),
-                Err(_) => items.push(DomainItem {
-                    provider: Provider::Cloudflare,
-                    name: "Cloudflare".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::FetchFailed,
-                    records_count: None,
-                    last_changed_at: None,
-                }),
-            }
-        } else {
-            items.push(DomainItem {
-                provider: Provider::Cloudflare,
-                name: "Cloudflare".to_string(),
-                provider_id: "".to_string(),
-                status: DomainStatus::NotConfigured,
-                records_count: None,
-                last_changed_at: None,
-            });
+    let make_error_item = |provider: Provider, display_name: &str, e: AppError| {
+        let status = match e.code.as_str() {
+            "auth_failed" => DomainStatus::AuthFailed,
+            "unreachable" | "timeout" => DomainStatus::Unreachable,
+            _ => DomainStatus::FetchFailed,
+        };
+        DomainItem {
+            provider,
+            name: format!("{display_name} (错误: {})", e.message),
+            provider_id: "".to_string(),
+            status,
+            records_count: None,
+            last_changed_at: None,
         }
-    }
+    };
 
-    if wants_dnspod {
-        if let Some(dp) = plain.dnspod.clone() {
-            let dp_client = DnspodClient::new(dp.token_id, dp.token)?;
-            match dp_client.list_domains().await {
-                Ok(mut v) => items.append(&mut v),
-                Err(_) => items.push(DomainItem {
+    let cf_creds = plain.cloudflare.clone();
+    let dp_creds = plain.dnspod.clone();
+
+    if wants_cloudflare && wants_dnspod {
+        match (cf_creds, dp_creds) {
+            (Some(cf), Some(dp)) => {
+                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
+                let cf_result = cf_client.list_domains().await;
+                let dp_result = dp_client.list_domains().await;
+                match cf_result {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
+                }
+                match dp_result {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
+                }
+            }
+            (Some(cf), None) => {
+                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+                match cf_client.list_domains().await {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
+                }
+                items.push(DomainItem {
                     provider: Provider::Dnspod,
                     name: "DNSPod".to_string(),
                     provider_id: "".to_string(),
-                    status: DomainStatus::FetchFailed,
+                    status: DomainStatus::NotConfigured,
                     records_count: None,
                     last_changed_at: None,
-                }),
+                });
             }
-        } else {
-            items.push(DomainItem {
-                provider: Provider::Dnspod,
-                name: "DNSPod".to_string(),
-                provider_id: "".to_string(),
-                status: DomainStatus::NotConfigured,
-                records_count: None,
-                last_changed_at: None,
-            });
+            (None, Some(dp)) => {
+                items.push(DomainItem {
+                    provider: Provider::Cloudflare,
+                    name: "Cloudflare".to_string(),
+                    provider_id: "".to_string(),
+                    status: DomainStatus::NotConfigured,
+                    records_count: None,
+                    last_changed_at: None,
+                });
+                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
+                match dp_client.list_domains().await {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
+                }
+            }
+            (None, None) => {
+                items.push(DomainItem {
+                    provider: Provider::Cloudflare,
+                    name: "Cloudflare".to_string(),
+                    provider_id: "".to_string(),
+                    status: DomainStatus::NotConfigured,
+                    records_count: None,
+                    last_changed_at: None,
+                });
+                items.push(DomainItem {
+                    provider: Provider::Dnspod,
+                    name: "DNSPod".to_string(),
+                    provider_id: "".to_string(),
+                    status: DomainStatus::NotConfigured,
+                    records_count: None,
+                    last_changed_at: None,
+                });
+            }
+        }
+    } else {
+        if wants_cloudflare {
+            if let Some(cf) = cf_creds {
+                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+                match cf_client.list_domains().await {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
+                }
+            } else {
+                items.push(DomainItem {
+                    provider: Provider::Cloudflare,
+                    name: "Cloudflare".to_string(),
+                    provider_id: "".to_string(),
+                    status: DomainStatus::NotConfigured,
+                    records_count: None,
+                    last_changed_at: None,
+                });
+            }
+        }
+
+        if wants_dnspod {
+            if let Some(dp) = dp_creds {
+                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
+                match dp_client.list_domains().await {
+                    Ok(mut v) => items.append(&mut v),
+                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
+                }
+            } else {
+                items.push(DomainItem {
+                    provider: Provider::Dnspod,
+                    name: "DNSPod".to_string(),
+                    provider_id: "".to_string(),
+                    status: DomainStatus::NotConfigured,
+                    records_count: None,
+                    last_changed_at: None,
+                });
+            }
         }
     }
 
@@ -230,14 +303,14 @@ pub async fn records_list(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email, cf.api_key)?;
+            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
             cf_client.list_records(&domain_id, &domain_name).await
         }
         Provider::Dnspod => {
             let dp = plain
                 .dnspod
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
-            let dp_client = DnspodClient::new(dp.token_id, dp.token)?;
+            let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.list_records(&domain_id, &domain_name).await
         }
     }
@@ -253,13 +326,14 @@ pub async fn record_create(
     req: RecordCreateRequest,
 ) -> Result<DnsRecord, AppError> {
     let (_, plain) = vault::decrypt_vault(&app, &master_password)?;
+    validate_record_request(&req)?;
 
     match provider {
         Provider::Cloudflare => {
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email, cf.api_key)?;
+            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
             let conflict_ids = cf_client
                 .find_conflict_ids(&domain_id, &domain_name, &req.record_type, &req.name)
                 .await?;
@@ -295,7 +369,7 @@ pub async fn record_create(
             let dp = plain
                 .dnspod
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
-            let dp_client = DnspodClient::new(dp.token_id, dp.token)?;
+            let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             let existing = dp_client.list_records(&domain_id, &domain_name).await?;
             let conflicts: Vec<&DnsRecord> = existing
                 .iter()
@@ -332,6 +406,69 @@ pub async fn record_create(
     }
 }
 
+fn validate_record_request(req: &RecordCreateRequest) -> Result<(), AppError> {
+    let valid_types = ["A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV", "CAA"];
+    if !valid_types.contains(&req.record_type.as_str()) {
+        return Err(AppError::new("invalid_type", format!("不支持的记录类型: {}", req.record_type)));
+    }
+
+    let name = req.name.trim();
+    if name.is_empty() {
+        return Err(AppError::new("invalid_name", "主机记录不能为空"));
+    }
+
+    let content = req.content.trim();
+    if content.is_empty() {
+        return Err(AppError::new("invalid_content", "记录值不能为空"));
+    }
+
+    if req.ttl < 60 || req.ttl > 86400 {
+        return Err(AppError::new("invalid_ttl", "TTL 必须在 60-86400 秒之间"));
+    }
+
+    match req.record_type.as_str() {
+        "A" => {
+            if content.parse::<Ipv4Addr>().is_err() {
+                return Err(AppError::new("invalid_content", "A 记录必须是有效的 IPv4 地址"));
+            }
+        }
+        "AAAA" => {
+            if content.parse::<Ipv6Addr>().is_err() {
+                return Err(AppError::new("invalid_content", "AAAA 记录必须是有效的 IPv6 地址"));
+            }
+        }
+        "CNAME" | "NS" => {
+            if !content.contains('.') {
+                return Err(AppError::new("invalid_content", "记录值必须是有效域名"));
+            }
+        }
+        "MX" => {
+            if req.mx_priority.is_none() {
+                return Err(AppError::new("missing_field", "MX 记录必须设置优先级"));
+            }
+        }
+        "SRV" => {
+            if req.srv_priority.is_none() || req.srv_weight.is_none() || req.srv_port.is_none() {
+                return Err(AppError::new("missing_field", "SRV 记录必须设置优先级、权重和端口"));
+            }
+            let parts: Vec<&str> = name.split('.').collect();
+            if parts.len() < 2 || !parts[0].starts_with('_') || !parts[1].starts_with('_') {
+                return Err(AppError::new("invalid_name", "SRV 主机记录需为 _service._proto 形式"));
+            }
+        }
+        "CAA" => {
+            if let Some(tag) = &req.caa_tag {
+                if tag.trim().is_empty() {
+                    return Err(AppError::new("invalid_caa_tag", "CAA Tag 不能为空"));
+                }
+            }
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn record_update(
     app: AppHandle,
@@ -347,14 +484,14 @@ pub async fn record_update(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email, cf.api_key)?;
+            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
             cf_client.update_record(&domain_id, &domain_name, &req).await
         }
         Provider::Dnspod => {
             let dp = plain
                 .dnspod
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
-            let dp_client = DnspodClient::new(dp.token_id, dp.token)?;
+            let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.update_record(&domain_id, &domain_name, &req).await
         }
     }
@@ -374,14 +511,14 @@ pub async fn record_delete(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email, cf.api_key)?;
+            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
             cf_client.delete_record(&domain_id, &record_id).await
         }
         Provider::Dnspod => {
             let dp = plain
                 .dnspod
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
-            let dp_client = DnspodClient::new(dp.token_id, dp.token)?;
+            let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.delete_record(&domain_id, &record_id).await
         }
     }

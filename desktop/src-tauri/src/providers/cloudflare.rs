@@ -4,6 +4,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::Deserialize;
+use std::time::Duration;
 
 const API_BASE: &str = "https://api.cloudflare.com/client/v4";
 
@@ -17,6 +18,7 @@ impl CloudflareClient {
     pub fn new(email: String, api_key: String) -> Result<Self, AppError> {
         let client = reqwest::Client::builder()
             .user_agent("LaoChenDNS/0.1.0")
+            .timeout(Duration::from_secs(30))
             .build()
             .map_err(AppError::from)?;
 
@@ -149,7 +151,7 @@ impl CloudflareClient {
 
     pub async fn create_record(&self, zone_id: &str, zone_name: &str, req: &RecordCreateRequest) -> Result<DnsRecord, AppError> {
         let url = format!("{API_BASE}/zones/{zone_id}/dns_records");
-        let payload = build_cf_record_payload(zone_name, req);
+        let payload = build_cf_record_payload(zone_name, req)?;
         let res = self
             .client
             .post(url)
@@ -171,7 +173,7 @@ impl CloudflareClient {
 
     pub async fn update_record(&self, zone_id: &str, zone_name: &str, req: &RecordUpdateRequest) -> Result<DnsRecord, AppError> {
         let url = format!("{API_BASE}/zones/{zone_id}/dns_records/{}", req.id);
-        let payload = build_cf_record_payload_update(zone_name, req);
+        let payload = build_cf_record_payload_update(zone_name, req)?;
         let res = self
             .client
             .put(url)
@@ -336,12 +338,36 @@ struct CfRecordPayload {
     data: Option<serde_json::Value>,
 }
 
-fn build_cf_record_payload(zone_name: &str, req: &RecordCreateRequest) -> CfRecordPayload {
-    build_cf_payload_common(zone_name, &req.record_type, &req.name, &req.content, req.ttl, req.mx_priority, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref())
+fn build_cf_record_payload(zone_name: &str, req: &RecordCreateRequest) -> Result<CfRecordPayload, AppError> {
+    build_cf_payload_common(
+        zone_name,
+        &req.record_type,
+        &req.name,
+        &req.content,
+        req.ttl,
+        req.mx_priority,
+        req.srv_priority,
+        req.srv_weight,
+        req.srv_port,
+        req.caa_flags,
+        req.caa_tag.as_deref(),
+    )
 }
 
-fn build_cf_record_payload_update(zone_name: &str, req: &RecordUpdateRequest) -> CfRecordPayload {
-    build_cf_payload_common(zone_name, &req.record_type, &req.name, &req.content, req.ttl, req.mx_priority, req.srv_priority, req.srv_weight, req.srv_port, req.caa_flags, req.caa_tag.as_deref())
+fn build_cf_record_payload_update(zone_name: &str, req: &RecordUpdateRequest) -> Result<CfRecordPayload, AppError> {
+    build_cf_payload_common(
+        zone_name,
+        &req.record_type,
+        &req.name,
+        &req.content,
+        req.ttl,
+        req.mx_priority,
+        req.srv_priority,
+        req.srv_weight,
+        req.srv_port,
+        req.caa_flags,
+        req.caa_tag.as_deref(),
+    )
 }
 
 fn build_cf_payload_common(
@@ -356,11 +382,11 @@ fn build_cf_payload_common(
     srv_port: Option<u16>,
     caa_flags: Option<u8>,
     caa_tag: Option<&str>,
-) -> CfRecordPayload {
+) -> Result<CfRecordPayload, AppError> {
     let full_name = normalize_full_name(zone_name, host);
-    match record_type {
+    let payload = match record_type {
         "SRV" => {
-            let (service, proto) = parse_srv_service_proto(host);
+            let (service, proto) = parse_srv_service_proto(host)?;
             CfRecordPayload {
                 record_type: record_type.to_string(),
                 name: full_name,
@@ -406,14 +432,19 @@ fn build_cf_payload_common(
             priority: None,
             data: None,
         },
-    }
+    };
+    Ok(payload)
 }
 
-fn parse_srv_service_proto(host: &str) -> (String, String) {
+fn parse_srv_service_proto(host: &str) -> Result<(String, String), AppError> {
     let parts: Vec<&str> = host.split('.').collect();
     if parts.len() >= 2 && parts[0].starts_with('_') && parts[1].starts_with('_') {
-        (parts[0].to_string(), parts[1].to_string())
-    } else {
-        ("_service".to_string(), "_tcp".to_string())
+        Ok((parts[0].to_string(), parts[1].to_string()))
+    }
+    else {
+        Err(AppError::new(
+            "invalid_srv_name",
+            format!("SRV 记录主机名格式不正确: {}", host),
+        ))
     }
 }

@@ -6,6 +6,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::time::Duration;
 
 const API_BASE: &str = "https://dnsapi.cn";
 
@@ -19,6 +20,7 @@ impl DnspodClient {
     pub fn new(token_id: String, token: String) -> Result<Self, AppError> {
         let client = reqwest::Client::builder()
             .user_agent("LaoChenDNS/0.1.0")
+            .timeout(Duration::from_secs(30))
             .build()
             .map_err(AppError::from)?;
         Ok(Self {
@@ -28,7 +30,7 @@ impl DnspodClient {
         })
     }
 
-    fn headers(&self) -> HeaderMap {
+    fn headers(&self) -> Result<HeaderMap, AppError> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Content-Type",
@@ -36,9 +38,10 @@ impl DnspodClient {
         );
         headers.insert(
             "login_token",
-            HeaderValue::from_str(&self.login_token()).unwrap(),
+            HeaderValue::from_str(&self.login_token())
+                .map_err(|e| AppError::new("invalid_header", e.to_string()))?,
         );
-        headers
+        Ok(headers)
     }
 
     fn login_token(&self) -> String {
@@ -73,7 +76,7 @@ impl DnspodClient {
         let res = self
             .client
             .post(url)
-            .headers(self.headers())
+            .headers(self.headers()?)
             .form(&params)
             .send()
             .await
@@ -108,7 +111,7 @@ impl DnspodClient {
         let res = self
             .client
             .post(url)
-            .headers(self.headers())
+            .headers(self.headers()?)
             .form(&params)
             .send()
             .await
@@ -143,7 +146,7 @@ impl DnspodClient {
         let res = self
             .client
             .post(url)
-            .headers(self.headers())
+            .headers(self.headers()?)
             .form(&params)
             .send()
             .await
@@ -166,7 +169,7 @@ impl DnspodClient {
         let res = self
             .client
             .post(url)
-            .headers(self.headers())
+            .headers(self.headers()?)
             .form(&params)
             .send()
             .await
@@ -182,7 +185,7 @@ impl DnspodClient {
         let res = self
             .client
             .post(url)
-            .headers(self.headers())
+            .headers(self.headers()?)
             .form(&params)
             .send()
             .await

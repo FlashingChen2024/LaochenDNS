@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/records-modal.harness-DSqixB8y.js","assets/RecordsPage-tLJGVpb2.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/records-modal.harness-C1COkNIn.js","assets/RecordsPage-NOycIU5G.js"])))=>i.map(i=>d[i]);
 function _mergeNamespaces(n, m) {
   for (var i = 0; i < m.length; i++) {
     const e = m[i];
@@ -17664,10 +17664,10 @@ window.playwrightUpdate = async (rootElement, component) => {
   entry.setRenderer(() => __pwRender(component));
 };
 
-const D__AI_Coding_LaoChenDNS_desktop_tests_e2e_records_modal_harness_ModalHarness = () => __vitePreload(() => import('./records-modal.harness-DSqixB8y.js'),true              ?__vite__mapDeps([0,1]):void 0).then((mod) => mod.ModalHarness);
-const D__AI_Coding_LaoChenDNS_desktop_src_pages_RecordsPage_RecordModal = () => __vitePreload(() => import('./RecordsPage-tLJGVpb2.js').then(n => n.a),true              ?[]:void 0).then((mod) => mod.RecordModal);
+const D__AI_Coding_LaoChenDNS_desktop_tests_e2e_records_modal_harness_ModalHarness = () => __vitePreload(() => import('./records-modal.harness-C1COkNIn.js'),true              ?__vite__mapDeps([0,1]):void 0).then((mod) => mod.ModalHarness);
+const D__AI_Coding_LaoChenDNS_desktop_src_pages_RecordsPage_RecordModal = () => __vitePreload(() => import('./RecordsPage-NOycIU5G.js').then(n => n.a),true              ?[]:void 0).then((mod) => mod.RecordModal);
 __pwRegistry.initialize({ D__AI_Coding_LaoChenDNS_desktop_tests_e2e_records_modal_harness_ModalHarness,
   D__AI_Coding_LaoChenDNS_desktop_src_pages_RecordsPage_RecordModal });
 
 export { React4 as R, React3 as a, requireReactDom as b, getDefaultExportFromCjs as g, reactExports as r };
-//# sourceMappingURL=index-Dt6zRpxI.js.map
+//# sourceMappingURL=index-Bxu5kY3x.js.map

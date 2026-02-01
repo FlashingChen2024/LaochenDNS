@@ -238,8 +238,43 @@ export function RecordModal({
 
   const isCreate = !initial;
 
+  const validate = () => {
+    const trimmedName = name.trim();
+    const trimmedContent = content.trim();
+    if (!trimmedName) return "主机记录不能为空";
+    if (!trimmedContent) return "记录值不能为空";
+    if (ttl < 60 || ttl > 86400) return "TTL 必须在 60-86400 秒之间";
+    if (recordType === "A") {
+      const ipv4Regex =
+        /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      if (!ipv4Regex.test(trimmedContent)) return "A 记录必须是有效的 IPv4 地址";
+    }
+    if (recordType === "AAAA") {
+      const ipv6Regex = /^[0-9a-fA-F:]+$/;
+      if (!ipv6Regex.test(trimmedContent) || !trimmedContent.includes(":")) return "AAAA 记录必须是有效的 IPv6 地址";
+    }
+    if (recordType === "MX") {
+      if (mxPriority < 0 || mxPriority > 65535) return "MX 优先级必须在 0-65535 之间";
+    }
+    if (recordType === "SRV") {
+      if (srvPriority < 0 || srvPriority > 65535) return "SRV 优先级必须在 0-65535 之间";
+      if (srvWeight < 0 || srvWeight > 65535) return "SRV 权重必须在 0-65535 之间";
+      if (srvPort < 1 || srvPort > 65535) return "SRV 端口必须在 1-65535 之间";
+    }
+    if (recordType === "CAA") {
+      if (caaFlags < 0 || caaFlags > 255) return "CAA Flags 必须在 0-255 之间";
+      if (!caaTag.trim()) return "CAA Tag 不能为空";
+    }
+    return null;
+  };
+
   const submit = async () => {
     setError(null);
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setBusy(true);
     try {
       const req: RecordCreateRequest = {

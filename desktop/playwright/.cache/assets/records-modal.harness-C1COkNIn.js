@@ -1,5 +1,5 @@
-import { j as jsxRuntimeExports, R as RecordModal } from './RecordsPage-tLJGVpb2.js';
-import { r as reactExports } from './index-Dt6zRpxI.js';
+import { j as jsxRuntimeExports, R as RecordModal } from './RecordsPage-NOycIU5G.js';
+import { r as reactExports } from './index-Bxu5kY3x.js';
 
 function NoticeView({ notices }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: notices.map((notice) => /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: notice.message }, notice.id)) });
@@ -44,4 +44,4 @@ function ModalHarness({ mode }) {
 }
 
 export { ModalHarness };
-//# sourceMappingURL=records-modal.harness-DSqixB8y.js.map
+//# sourceMappingURL=records-modal.harness-C1COkNIn.js.map

@@ -10,7 +10,7 @@ export function UnlockPage() {
 
   const canSubmit = useMemo(() => {
     if (busy) return false;
-    if (!password) return false;
+    if (password.length < 8) return false;
     return true;
   }, [busy, password]);
 
@@ -47,6 +47,7 @@ export function UnlockPage() {
               autoFocus
             />
           </label>
+          {password.length > 0 && password.length < 8 ? <div className="muted">密码至少 8 位</div> : null}
           {error ? <div className="error">{error}</div> : null}
           <button className="btn btn-primary" type="submit" disabled={!canSubmit}>
             解锁

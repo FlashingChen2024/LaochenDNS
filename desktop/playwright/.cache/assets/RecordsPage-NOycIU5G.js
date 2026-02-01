@@ -1,4 +1,4 @@
-import { g as getDefaultExportFromCjs, r as reactExports, R as React4, a as React3, b as requireReactDom } from './index-Dt6zRpxI.js';
+import { g as getDefaultExportFromCjs, r as reactExports, R as React4, a as React3, b as requireReactDom } from './index-Bxu5kY3x.js';
 
 var jsxRuntime$2 = {exports: {}};
 
@@ -15278,7 +15278,10 @@ function AppProvider({ children }) {
   }, []);
   const pushNotice = reactExports.useCallback((type, message) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setNotices([{ id, type, message }]);
+    setNotices((prev) => [{ id, type, message }, ...prev].slice(0, 3));
+    setTimeout(() => {
+      setNotices((prev) => prev.filter((notice) => notice.id !== id));
+    }, 3500);
   }, []);
   const dismissNotice = reactExports.useCallback((id) => {
     setNotices((prev) => prev.filter((notice) => notice.id !== id));
@@ -15333,6 +15336,7 @@ function RecordsPage() {
   const [rows, setRows] = reactExports.useState([]);
   const [editing, setEditing] = reactExports.useState(null);
   const [creating, setCreating] = reactExports.useState(false);
+  const [confirming, setConfirming] = reactExports.useState(null);
   const load = async () => {
     if (!masterPassword) return;
     setBusy(true);
@@ -15355,14 +15359,13 @@ function RecordsPage() {
   }, [domainName, provider]);
   const onDelete = async (r) => {
     if (!masterPassword) return;
-    const ok = window.confirm(`确认删除 ${r.record_type} ${r.name} ?`);
-    if (!ok) return;
     setBusy(true);
     setError(null);
     try {
       await deleteRecord(masterPassword, provider, domainId, r.id);
       notifySuccess("记录删除成功");
       await load();
+      setConfirming(null);
     } catch (e) {
       const message = resolveErrorMessage(e);
       setError(message);
@@ -15399,7 +15402,7 @@ function RecordsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: r.ttl }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "row", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-secondary", onClick: () => setEditing(r), disabled: busy, children: "编辑" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-danger", onClick: () => void onDelete(r), disabled: busy, children: "删除" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-danger", onClick: () => setConfirming(r), disabled: busy, children: "删除" })
           ] }) })
         ] }, r.id)),
         rows.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 5, className: "muted", children: "暂无记录" }) }) : null
@@ -15461,7 +15464,20 @@ function RecordsPage() {
           }
         }
       }
-    ) : null
+    ) : null,
+    confirming ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Modal, { title: "确认删除", onClose: () => setConfirming(null), children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "muted", children: [
+        "确认删除 ",
+        confirming.record_type,
+        " ",
+        confirming.name,
+        " ?"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "row", style: { justifyContent: "flex-end", marginTop: 12 }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-secondary", onClick: () => setConfirming(null), disabled: busy, children: "取消" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-danger", onClick: () => void onDelete(confirming), disabled: busy, children: "删除" })
+      ] })
+    ] }) : null
   ] });
 }
 function RecordModal({
@@ -15484,8 +15500,41 @@ function RecordModal({
   const [busy, setBusy] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
   const isCreate = !initial;
+  const validate = () => {
+    const trimmedName = name.trim();
+    const trimmedContent = content.trim();
+    if (!trimmedName) return "主机记录不能为空";
+    if (!trimmedContent) return "记录值不能为空";
+    if (ttl < 60 || ttl > 86400) return "TTL 必须在 60-86400 秒之间";
+    if (recordType === "A") {
+      const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      if (!ipv4Regex.test(trimmedContent)) return "A 记录必须是有效的 IPv4 地址";
+    }
+    if (recordType === "AAAA") {
+      const ipv6Regex = /^[0-9a-fA-F:]+$/;
+      if (!ipv6Regex.test(trimmedContent) || !trimmedContent.includes(":")) return "AAAA 记录必须是有效的 IPv6 地址";
+    }
+    if (recordType === "MX") {
+      if (mxPriority < 0 || mxPriority > 65535) return "MX 优先级必须在 0-65535 之间";
+    }
+    if (recordType === "SRV") {
+      if (srvPriority < 0 || srvPriority > 65535) return "SRV 优先级必须在 0-65535 之间";
+      if (srvWeight < 0 || srvWeight > 65535) return "SRV 权重必须在 0-65535 之间";
+      if (srvPort < 1 || srvPort > 65535) return "SRV 端口必须在 1-65535 之间";
+    }
+    if (recordType === "CAA") {
+      if (caaFlags < 0 || caaFlags > 255) return "CAA Flags 必须在 0-255 之间";
+      if (!caaTag.trim()) return "CAA Tag 不能为空";
+    }
+    return null;
+  };
   const submit = async () => {
     setError(null);
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setBusy(true);
     try {
       const req = {
@@ -15586,4 +15635,4 @@ const RecordsPage$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 export { RecordModal as R, RecordsPage$1 as a, jsxRuntimeExports as j };
-//# sourceMappingURL=RecordsPage-tLJGVpb2.js.map
+//# sourceMappingURL=RecordsPage-NOycIU5G.js.map

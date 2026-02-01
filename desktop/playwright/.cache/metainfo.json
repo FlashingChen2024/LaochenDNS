@@ -23,50 +23,41 @@
     "D:/AI_Coding/LaoChenDNS/desktop/playwright/index.tsx": {
       "timestamp": 1769859095881.384
     },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/index.js": {
-      "timestamp": 1769853997070.8909
-    },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/client.js": {
       "timestamp": 1769853997057.381
     },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/index.js": {
+      "timestamp": 1769853997070.8909
+    },
     "D:/AI_Coding/LaoChenDNS/desktop/src/App.css": {
-      "timestamp": 1769857383311.922
+      "timestamp": 1769928180480.36
+    },
+    "D:/AI_Coding/LaoChenDNS/desktop/src/pages/RecordsPage.tsx": {
+      "timestamp": 1769931553956.4407
     },
     "D:/AI_Coding/LaoChenDNS/desktop/tests/e2e/records-modal.harness.tsx": {
       "timestamp": 1769864435161.4873
     },
-    "D:/AI_Coding/LaoChenDNS/desktop/src/pages/RecordsPage.tsx": {
-      "timestamp": 1769857700923.146
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/jsx-runtime.js": {
-      "timestamp": 1769853997101.4065
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router-dom/dist/index.mjs": {
+      "timestamp": 1769854418606.6345
     },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/cjs/react.production.js": {
       "timestamp": 1769853997190.25
     },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/jsx-runtime.js": {
+      "timestamp": 1769853997101.4065
+    },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/cjs/react-dom-client.production.js": {
       "timestamp": 1769853997206.692
     },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router-dom/dist/index.mjs": {
-      "timestamp": 1769854418606.6345
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/cjs/react-jsx-runtime.production.js": {
-      "timestamp": 1769853997172.932
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/src/lib/api.ts": {
-      "timestamp": 1769856470737.3528
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/scheduler/index.js": {
-      "timestamp": 1769853997055.832
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/index.js": {
-      "timestamp": 1769853997078.9766
-    },
     "D:/AI_Coding/LaoChenDNS/desktop/src/app/AppContext.tsx": {
-      "timestamp": 1769857338675.2751
+      "timestamp": 1769926515499.2207
     },
     "D:/AI_Coding/LaoChenDNS/desktop/src/components/Modal.tsx": {
       "timestamp": 1769854804320.977
+    },
+    "D:/AI_Coding/LaoChenDNS/desktop/src/lib/api.ts": {
+      "timestamp": 1769856470737.3528
     },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router/dist/development/index.mjs": {
       "timestamp": 1769854418658.1682
@@ -74,14 +65,17 @@
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router/dist/development/dom-export.mjs": {
       "timestamp": 1769854418650.828
     },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/scheduler/index.js": {
+      "timestamp": 1769853997055.832
+    },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/index.js": {
+      "timestamp": 1769853997078.9766
+    },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react/cjs/react-jsx-runtime.production.js": {
+      "timestamp": 1769853997172.932
+    },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/@tauri-apps/api/core.js": {
       "timestamp": 1769853997209.3835
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/scheduler/cjs/scheduler.production.js": {
-      "timestamp": 1769853997147.9385
-    },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/cjs/react-dom.production.js": {
-      "timestamp": 1769853997353.4343
     },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router/dist/development/chunk-4LKRSAEJ.mjs": {
       "timestamp": 1769854418637.7031
@@ -89,13 +83,19 @@
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-router/dist/development/chunk-JZWAC4HX.mjs": {
       "timestamp": 1769854418644.6113
     },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/react-dom/cjs/react-dom.production.js": {
+      "timestamp": 1769853997353.4343
+    },
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/scheduler/cjs/scheduler.production.js": {
+      "timestamp": 1769853997147.9385
+    },
     "D:/AI_Coding/LaoChenDNS/desktop/node_modules/@tauri-apps/api/external/tslib/tslib.es6.js": {
       "timestamp": 1769853997237.2793
     },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/set-cookie-parser/lib/set-cookie.js": {
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/cookie/dist/index.js": {
       "timestamp": 1769854418605.0913
     },
-    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/cookie/dist/index.js": {
+    "D:/AI_Coding/LaoChenDNS/desktop/node_modules/set-cookie-parser/lib/set-cookie.js": {
       "timestamp": 1769854418605.0913
     }
   },

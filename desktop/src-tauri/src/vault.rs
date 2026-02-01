@@ -38,11 +38,39 @@ pub struct CloudflareCreds {
     pub last_verified_at: Option<String>,
 }
 
+impl Zeroize for CloudflareCreds {
+    fn zeroize(&mut self) {
+        self.email.zeroize();
+        self.api_key.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for CloudflareCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnspodCreds {
     pub token_id: String,
     pub token: String,
     pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for DnspodCreds {
+    fn zeroize(&mut self) {
+        self.token_id.zeroize();
+        self.token.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for DnspodCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
 }
 
 pub fn vault_path(app: &AppHandle) -> Result<PathBuf, AppError> {
@@ -233,4 +261,3 @@ fn decode_b64_any(value: &str) -> Result<Vec<u8>, AppError> {
         .decode(value)
         .map_err(|e| AppError::new("parse_error", e.to_string()))
 }
-
