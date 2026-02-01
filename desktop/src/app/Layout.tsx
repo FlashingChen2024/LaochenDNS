@@ -1,8 +1,10 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "./AppContext";
 
 export function Layout() {
   const { setMasterPassword } = useApp();
+  const location = useLocation();
+  const isDomainsRoute = location.pathname.startsWith("/domains") || location.pathname.startsWith("/records");
 
   return (
     <div className="app-shell">
@@ -12,13 +14,13 @@ export function Layout() {
           <div className="brand-subtitle">DNS 聚合管理</div>
         </div>
         <nav className="nav">
-          <NavLink className="nav-link" to="/domains">
+          <NavLink className={() => `nav-link${isDomainsRoute ? " active" : ""}`} to="/domains">
             域名
           </NavLink>
-          <NavLink className="nav-link" to="/integrations">
+          <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/integrations">
             接入
           </NavLink>
-          <NavLink className="nav-link" to="/settings">
+          <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/settings">
             设置
           </NavLink>
         </nav>

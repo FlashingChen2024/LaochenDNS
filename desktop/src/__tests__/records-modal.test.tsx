@@ -136,7 +136,6 @@ describe("RecordsPage modal flow", () => {
       },
     ]);
     mockDeleteRecord.mockResolvedValueOnce();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     render(
       <AppProvider>
@@ -146,8 +145,9 @@ describe("RecordsPage modal flow", () => {
 
     await screen.findByText("www");
     await userEvent.click(screen.getByRole("button", { name: "删除" }));
+    const deleteButtons = await screen.findAllByRole("button", { name: "删除" });
+    await userEvent.click(deleteButtons[1]);
 
     expect(await screen.findByText("记录删除成功")).toBeTruthy();
-    confirmSpy.mockRestore();
   });
 });

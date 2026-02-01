@@ -77,7 +77,7 @@ export function DomainsPage() {
             <option value="cloudflare">Cloudflare</option>
             <option value="dnspod">DNSPod</option>
           </select>
-          <button className="btn btn-primary" onClick={() => void load()} disabled={busy}>
+          <button className="btn btn-primary btn-compact" onClick={() => void load()} disabled={busy}>
             刷新
           </button>
         </div>

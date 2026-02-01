@@ -163,7 +163,7 @@ export function IntegrationsPage() {
 
       <div className="grid-2" style={{ marginTop: 16 }}>
         <div className="card">
-          <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="row card-header-row">
             <div>
               <div className="h1">Cloudflare</div>
               <div className="muted">{cfStatusText}</div>
@@ -195,7 +195,7 @@ export function IntegrationsPage() {
         </div>
 
         <div className="card">
-          <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="row card-header-row">
             <div>
               <div className="h1">DNSPod</div>
               <div className="muted">{dpStatusText}</div>

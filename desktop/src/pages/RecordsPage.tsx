@@ -34,6 +34,7 @@ export function RecordsPage() {
   const [rows, setRows] = useState<DnsRecord[]>([]);
   const [editing, setEditing] = useState<DnsRecord | null>(null);
   const [creating, setCreating] = useState(false);
+  const [confirming, setConfirming] = useState<DnsRecord | null>(null);
 
   const load = async () => {
     if (!masterPassword) return;
@@ -60,14 +61,13 @@ export function RecordsPage() {
 
   const onDelete = async (r: DnsRecord) => {
     if (!masterPassword) return;
-    const ok = window.confirm(`确认删除 ${r.record_type} ${r.name} ?`);
-    if (!ok) return;
     setBusy(true);
     setError(null);
     try {
       await deleteRecord(masterPassword, provider, domainId, r.id);
       notifySuccess("记录删除成功");
       await load();
+      setConfirming(null);
     } catch (e) {
       const message = resolveErrorMessage(e);
       setError(message);
@@ -118,7 +118,7 @@ export function RecordsPage() {
                   <button className="btn btn-secondary" onClick={() => setEditing(r)} disabled={busy}>
                     编辑
                   </button>
-                  <button className="btn btn-danger" onClick={() => void onDelete(r)} disabled={busy}>
+                  <button className="btn btn-danger" onClick={() => setConfirming(r)} disabled={busy}>
                     删除
                   </button>
                 </div>
@@ -191,6 +191,19 @@ export function RecordsPage() {
             }
           }}
         />
+      ) : null}
+      {confirming ? (
+        <Modal title="确认删除" onClose={() => setConfirming(null)}>
+          <div className="muted">确认删除 {confirming.record_type} {confirming.name} ?</div>
+          <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
+            <button className="btn btn-secondary" onClick={() => setConfirming(null)} disabled={busy}>
+              取消
+            </button>
+            <button className="btn btn-danger" onClick={() => void onDelete(confirming)} disabled={busy}>
+              删除
+            </button>
+          </div>
+        </Modal>
       ) : null}
     </div>
   );

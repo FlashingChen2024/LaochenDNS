@@ -23,6 +23,7 @@ body {
   height: 100%;
   display: grid;
   grid-template-columns: 240px 1fr;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -32,6 +33,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
 }
 
 .brand-title {
@@ -67,10 +69,13 @@ body {
 
 .sidebar-footer {
   margin-top: auto;
+  padding-bottom: 28px;
 }
 
 .main {
   padding: 20px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .page-header {
@@ -139,10 +144,40 @@ body {
   font-size: 14px;
 }
 
+.select {
+  appearance: none;
+  padding-right: 36px;
+  min-width: 120px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none'><path d='M5 7l5 5 5-5' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+.select:hover {
+  border-color: #94a3b8;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 .row {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.card-header-row {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-header-row .btn {
+  white-space: nowrap;
 }
 
 .w-full {
@@ -155,6 +190,10 @@ body {
   padding: 10px 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.btn-compact {
+  white-space: nowrap;
 }
 
 .btn:disabled {
@@ -179,6 +218,20 @@ body {
   color: #9a3412;
 }
 
+@media (max-width: 960px) {
+  .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn-compact {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
 .error {
   padding: 10px 12px;
   border-radius: 10px;
@@ -198,17 +251,19 @@ body {
 }
 
 .app-root {
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .notice-stack {
-  position: sticky;
-  top: 12px;
-  z-index: 20;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 0 16px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
 }
 
 .notice {
@@ -221,6 +276,7 @@ body {
   border: 1px solid #e2e8f0;
   background: #ffffff;
   font-size: 13px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .notice-text {

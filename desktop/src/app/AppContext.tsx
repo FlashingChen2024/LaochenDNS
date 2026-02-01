@@ -35,7 +35,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const pushNotice = useCallback((type: NoticeType, message: string) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setNotices([{ id, type, message }]);
+    setNotices((prev) => [{ id, type, message }, ...prev].slice(0, 3));
+    setTimeout(() => {
+      setNotices((prev) => prev.filter((notice) => notice.id !== id));
+    }, 3500);
   }, []);
 
   const dismissNotice = useCallback((id: string) => {
