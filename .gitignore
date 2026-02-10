@@ -1,0 +1,5 @@
+*
+!desktop/
+!desktop/**
+!README.md
+!.gitignore

@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    /* Swiss International Style / Dieter Rams Inspired Palette */
+    --color-bg: #F4F4F0; /* Warm Gray / Paper */
+    --color-surface: #FFFFFF;
+    --color-text: #111111; /* Near Black */
+    --color-text-secondary: #666666;
+    --color-primary: #EA580C; /* Braun Orange */
+    --color-accent: #000000; /* Deep Black for emphasis */
+    --color-destructive: #DC2626;
+    --color-border: #E5E5E5;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #0F0F0F; /* Dark Matte */
+      --color-surface: #1A1A1A;
+      --color-text: #F0F0F0;
+      --color-text-secondary: #888888;
+      --color-primary: #F97316; /* Brighter Orange for dark mode */
+      --color-accent: #FFFFFF;
+      --color-destructive: #EF4444;
+      --color-border: #2A2A2A;
+    }
+  }
+
+  body {
+    @apply bg-[var(--color-bg)] text-[var(--color-text)] font-sans antialiased overflow-y-auto selection:bg-[var(--color-primary)] selection:text-white;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-[var(--color-accent)];
+  }
+}
+
+@layer utilities {
+  .grid-swiss {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .border-swiss {
+    @apply border border-[var(--color-border)];
+  }
+
+  @keyframes slide-in-right {
+    0% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+  }
+}
+
+/* Custom Scrollbar for Webkit - Minimalist */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
