@@ -87,10 +87,19 @@ impl BaiduClient {
     pub async fn create_record(&self, zone_id: &str, domain_name: &str, req: &RecordCreateRequest) -> Result<DnsRecord, AppError> {
         let path = format!("/v1/zone/{zone_id}/record");
         let url = format!("{API_BASE}{path}");
+        let value = baidu_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = BaiduRecordCreateRequest {
             rr: req.name.clone(),
             record_type: req.record_type.clone(),
-            value: req.content.clone(),
+            value,
             ttl: req.ttl,
             priority: req.mx_priority,
         };
@@ -104,16 +113,41 @@ impl BaiduClient {
             .await
             .map_err(AppError::from)?;
         let parsed: BaiduRecord = res.json().await.map_err(AppError::from)?;
-        Ok(parsed.to_dns_record(domain_name))
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_baidu_record_value(&req.record_type, &req.content);
+        Ok(DnsRecord {
+            id: parsed.id,
+            provider: Provider::Baidu,
+            domain: domain_name.to_string(),
+            record_type: parsed.record_type,
+            name: parsed.rr,
+            content,
+            ttl: parsed.ttl,
+            mx_priority: parsed.priority,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
+        })
     }
 
     pub async fn update_record(&self, zone_id: &str, domain_name: &str, req: &RecordUpdateRequest) -> Result<DnsRecord, AppError> {
         let path = format!("/v1/zone/{zone_id}/record/{}", req.id);
         let url = format!("{API_BASE}{path}");
+        let value = baidu_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = BaiduRecordCreateRequest {
             rr: req.name.clone(),
             record_type: req.record_type.clone(),
-            value: req.content.clone(),
+            value,
             ttl: req.ttl,
             priority: req.mx_priority,
         };
@@ -127,7 +161,23 @@ impl BaiduClient {
             .await
             .map_err(AppError::from)?;
         let parsed: BaiduRecord = res.json().await.map_err(AppError::from)?;
-        Ok(parsed.to_dns_record(domain_name))
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_baidu_record_value(&req.record_type, &req.content);
+        Ok(DnsRecord {
+            id: parsed.id,
+            provider: Provider::Baidu,
+            domain: domain_name.to_string(),
+            record_type: parsed.record_type,
+            name: parsed.rr,
+            content,
+            ttl: parsed.ttl,
+            mx_priority: parsed.priority,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
+        })
     }
 
     pub async fn delete_record(&self, zone_id: &str, record_id: &str) -> Result<(), AppError> {
@@ -283,20 +333,22 @@ struct BaiduRecord {
 
 impl BaiduRecord {
     fn to_dns_record(self, domain_name: &str) -> DnsRecord {
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_baidu_record_value(&self.record_type, &self.value);
         DnsRecord {
             id: self.id,
             provider: Provider::Baidu,
             domain: domain_name.to_string(),
             record_type: self.record_type,
             name: self.rr,
-            content: self.value,
+            content,
             ttl: self.ttl,
             mx_priority: self.priority,
-            srv_priority: None,
-            srv_weight: None,
-            srv_port: None,
-            caa_flags: None,
-            caa_tag: None,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
         }
     }
 }
@@ -309,4 +361,63 @@ struct BaiduRecordCreateRequest {
     value: String,
     ttl: u32,
     priority: Option<u16>,
+}
+
+fn baidu_value(
+    record_type: &str,
+    content: &str,
+    srv_priority: Option<u16>,
+    srv_weight: Option<u16>,
+    srv_port: Option<u16>,
+    caa_flags: Option<u8>,
+    caa_tag: Option<&str>,
+) -> String {
+    match record_type {
+        "SRV" => format!(
+            "{} {} {} {}",
+            srv_priority.unwrap_or(0),
+            srv_weight.unwrap_or(0),
+            srv_port.unwrap_or(0),
+            content
+        ),
+        "CAA" => format!(
+            "{} {} {}",
+            caa_flags.unwrap_or(0),
+            caa_tag.unwrap_or("issue"),
+            content
+        ),
+        _ => content.to_string(),
+    }
+}
+
+fn parse_baidu_record_value(
+    record_type: &str,
+    value: &str,
+) -> (String, Option<u16>, Option<u16>, Option<u16>, Option<u8>, Option<String>) {
+    match record_type {
+        "SRV" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 4 {
+                let srv_priority = parts[0].parse::<u16>().ok();
+                let srv_weight = parts[1].parse::<u16>().ok();
+                let srv_port = parts[2].parse::<u16>().ok();
+                let content = parts[3..].join(" ");
+                (content, srv_priority, srv_weight, srv_port, None, None)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        "CAA" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let flags = parts[0].parse::<u8>().ok();
+                let tag = Some(parts[1].to_string());
+                let content = parts[2..].join(" ");
+                (content, None, None, None, flags, tag)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        _ => (value.to_string(), None, None, None, None, None),
+    }
 }

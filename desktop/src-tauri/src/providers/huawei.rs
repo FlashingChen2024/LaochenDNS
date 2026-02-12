@@ -72,7 +72,9 @@ impl HuaweiClient {
         let parsed: HuaweiRecordsetListResponse = res.json().await.map_err(AppError::from)?;
         let mut items = Vec::new();
         for recordset in parsed.recordsets.unwrap_or_default() {
-            let content = recordset.records.get(0).cloned().unwrap_or_default();
+            let raw_value = recordset.records.get(0).cloned().unwrap_or_default();
+            let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+                parse_huawei_record_value(&recordset.record_type, &raw_value);
             items.push(DnsRecord {
                 id: recordset.id,
                 provider: Provider::Huawei,
@@ -82,11 +84,11 @@ impl HuaweiClient {
                 content,
                 ttl: recordset.ttl,
                 mx_priority: recordset.priority,
-                srv_priority: None,
-                srv_weight: None,
-                srv_port: None,
-                caa_flags: None,
-                caa_tag: None,
+                srv_priority,
+                srv_weight,
+                srv_port,
+                caa_flags,
+                caa_tag,
             });
         }
         Ok(items)
@@ -94,11 +96,20 @@ impl HuaweiClient {
 
     pub async fn create_record(&self, zone_id: &str, domain_name: &str, req: &RecordCreateRequest) -> Result<DnsRecord, AppError> {
         let url = format!("{API_BASE}/v2/zones/{zone_id}/recordsets");
+        let value = huawei_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = HuaweiRecordsetCreateRequest {
             name: huawei_full_name(domain_name, &req.name),
             record_type: req.record_type.clone(),
             ttl: req.ttl,
-            records: vec![req.content.clone()],
+            records: vec![value],
         };
         let res = self
             .client
@@ -109,30 +120,41 @@ impl HuaweiClient {
             .await
             .map_err(AppError::from)?;
         let parsed: HuaweiRecordset = res.json().await.map_err(AppError::from)?;
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_huawei_record_value(&parsed.record_type, &req.content);
         Ok(DnsRecord {
             id: parsed.id,
             provider: Provider::Huawei,
             domain: domain_name.to_string(),
             record_type: parsed.record_type,
             name: huawei_rr(&parsed.name, domain_name),
-            content: req.content.clone(),
+            content,
             ttl: parsed.ttl,
             mx_priority: parsed.priority,
-            srv_priority: None,
-            srv_weight: None,
-            srv_port: None,
-            caa_flags: None,
-            caa_tag: None,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
         })
     }
 
     pub async fn update_record(&self, zone_id: &str, domain_name: &str, req: &RecordUpdateRequest) -> Result<DnsRecord, AppError> {
         let url = format!("{API_BASE}/v2/zones/{zone_id}/recordsets/{}", req.id);
+        let value = huawei_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = HuaweiRecordsetCreateRequest {
             name: huawei_full_name(domain_name, &req.name),
             record_type: req.record_type.clone(),
             ttl: req.ttl,
-            records: vec![req.content.clone()],
+            records: vec![value],
         };
         let res = self
             .client
@@ -143,20 +165,22 @@ impl HuaweiClient {
             .await
             .map_err(AppError::from)?;
         let parsed: HuaweiRecordset = res.json().await.map_err(AppError::from)?;
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_huawei_record_value(&parsed.record_type, &req.content);
         Ok(DnsRecord {
             id: parsed.id,
             provider: Provider::Huawei,
             domain: domain_name.to_string(),
             record_type: parsed.record_type,
             name: huawei_rr(&parsed.name, domain_name),
-            content: req.content.clone(),
+            content,
             ttl: parsed.ttl,
             mx_priority: parsed.priority,
-            srv_priority: None,
-            srv_weight: None,
-            srv_port: None,
-            caa_flags: None,
-            caa_tag: None,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
         })
     }
 
@@ -253,4 +277,63 @@ struct HuaweiRecordsetCreateRequest {
     record_type: String,
     ttl: u32,
     records: Vec<String>,
+}
+
+fn huawei_value(
+    record_type: &str,
+    content: &str,
+    srv_priority: Option<u16>,
+    srv_weight: Option<u16>,
+    srv_port: Option<u16>,
+    caa_flags: Option<u8>,
+    caa_tag: Option<&str>,
+) -> String {
+    match record_type {
+        "SRV" => format!(
+            "{} {} {} {}",
+            srv_priority.unwrap_or(0),
+            srv_weight.unwrap_or(0),
+            srv_port.unwrap_or(0),
+            content
+        ),
+        "CAA" => format!(
+            "{} {} {}",
+            caa_flags.unwrap_or(0),
+            caa_tag.unwrap_or("issue"),
+            content
+        ),
+        _ => content.to_string(),
+    }
+}
+
+fn parse_huawei_record_value(
+    record_type: &str,
+    value: &str,
+) -> (String, Option<u16>, Option<u16>, Option<u16>, Option<u8>, Option<String>) {
+    match record_type {
+        "SRV" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 4 {
+                let srv_priority = parts[0].parse::<u16>().ok();
+                let srv_weight = parts[1].parse::<u16>().ok();
+                let srv_port = parts[2].parse::<u16>().ok();
+                let content = parts[3..].join(" ");
+                (content, srv_priority, srv_weight, srv_port, None, None)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        "CAA" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let flags = parts[0].parse::<u8>().ok();
+                let tag = Some(parts[1].to_string());
+                let content = parts[2..].join(" ");
+                (content, None, None, None, flags, tag)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        _ => (value.to_string(), None, None, None, None, None),
+    }
 }

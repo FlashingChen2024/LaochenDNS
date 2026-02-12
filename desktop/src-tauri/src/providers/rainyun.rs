@@ -69,6 +69,15 @@ impl RainyunClient {
 
     pub async fn create_record(&self, domain_id: &str, domain_name: &str, req: &RecordCreateRequest) -> Result<DnsRecord, AppError> {
         let url = format!("{API_BASE}/product/domain/{domain_id}/dns");
+        let value = rainyun_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = RainyunRecordPayload {
             host: req.name.clone(),
             level: 0,
@@ -78,7 +87,7 @@ impl RainyunClient {
             record_id: 0,
             ttl: req.ttl,
             record_type: req.record_type.clone(),
-            value: req.content.clone(),
+            value,
         };
         let res = self
             .client
@@ -109,6 +118,15 @@ impl RainyunClient {
     pub async fn update_record(&self, domain_id: &str, domain_name: &str, req: &RecordUpdateRequest) -> Result<DnsRecord, AppError> {
         let record_id = parse_u64(&req.id).ok_or_else(|| AppError::new("invalid_input", "记录 ID 无效"))?;
         let url = format!("{API_BASE}/product/domain/{domain_id}/dns");
+        let value = rainyun_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
         let payload = RainyunRecordPayload {
             host: req.name.clone(),
             level: 0,
@@ -118,7 +136,7 @@ impl RainyunClient {
             record_id,
             ttl: req.ttl,
             record_type: req.record_type.clone(),
-            value: req.content.clone(),
+            value,
         };
         let res = self
             .client
@@ -252,8 +270,10 @@ fn parse_record_item(value: &Value, domain_name: &str) -> Option<DnsRecord> {
     let id = extract_string(value, &["record_id", "id"])?;
     let record_type = extract_string(value, &["type", "record_type", "recordType"])?;
     let host = extract_string(value, &["host", "name", "rr"])?;
-    let content = extract_string(value, &["value", "content"])?;
+    let raw_value = extract_string(value, &["value", "content"])?;
     let ttl = extract_u32(value, &["ttl"]).unwrap_or(600);
+    let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+        parse_record_value(&record_type, &raw_value);
     Some(DnsRecord {
         id,
         provider: Provider::Rainyun,
@@ -263,11 +283,11 @@ fn parse_record_item(value: &Value, domain_name: &str) -> Option<DnsRecord> {
         content,
         ttl,
         mx_priority: extract_u16(value, &["mx", "priority", "mx_priority"]),
-        srv_priority: extract_u16(value, &["srv_priority", "priority"]),
-        srv_weight: extract_u16(value, &["srv_weight", "weight"]),
-        srv_port: extract_u16(value, &["srv_port", "port"]),
-        caa_flags: None,
-        caa_tag: extract_string(value, &["caa_tag", "tag"]),
+        srv_priority,
+        srv_weight,
+        srv_port,
+        caa_flags,
+        caa_tag,
     })
 }
 
@@ -363,4 +383,63 @@ fn extract_u16(value: &Value, keys: &[&str]) -> Option<u16> {
 
 fn parse_u64(value: &str) -> Option<u64> {
     value.trim().parse::<u64>().ok()
+}
+
+fn rainyun_value(
+    record_type: &str,
+    content: &str,
+    srv_priority: Option<u16>,
+    srv_weight: Option<u16>,
+    srv_port: Option<u16>,
+    caa_flags: Option<u8>,
+    caa_tag: Option<&str>,
+) -> String {
+    match record_type {
+        "SRV" => format!(
+            "{} {} {} {}",
+            srv_priority.unwrap_or(0),
+            srv_weight.unwrap_or(0),
+            srv_port.unwrap_or(0),
+            content
+        ),
+        "CAA" => format!(
+            "{} {} {}",
+            caa_flags.unwrap_or(0),
+            caa_tag.unwrap_or("issue"),
+            content
+        ),
+        _ => content.to_string(),
+    }
+}
+
+fn parse_record_value(
+    record_type: &str,
+    value: &str,
+) -> (String, Option<u16>, Option<u16>, Option<u16>, Option<u8>, Option<String>) {
+    match record_type {
+        "SRV" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 4 {
+                let srv_priority = parts[0].parse::<u16>().ok();
+                let srv_weight = parts[1].parse::<u16>().ok();
+                let srv_port = parts[2].parse::<u16>().ok();
+                let content = parts[3..].join(" ");
+                (content, srv_priority, srv_weight, srv_port, None, None)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        "CAA" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let flags = parts[0].parse::<u8>().ok();
+                let tag = Some(parts[1].to_string());
+                let content = parts[2..].join(" ");
+                (content, None, None, None, flags, tag)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        _ => (value.to_string(), None, None, None, None, None),
+    }
 }

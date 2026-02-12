@@ -354,20 +354,22 @@ struct AliyunRecord {
 
 impl AliyunRecord {
     fn to_dns_record(self, domain_name: &str) -> DnsRecord {
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_aliyun_record_value(&self.record_type, &self.value);
         DnsRecord {
             id: self.record_id,
             provider: Provider::Aliyun,
             domain: domain_name.to_string(),
             record_type: self.record_type,
             name: self.rr,
-            content: self.value,
+            content,
             ttl: self.ttl,
             mx_priority: self.priority,
-            srv_priority: None,
-            srv_weight: None,
-            srv_port: None,
-            caa_flags: None,
-            caa_tag: None,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
         }
     }
 }
@@ -376,4 +378,36 @@ impl AliyunRecord {
 struct AliyunRecordCreateResponse {
     #[serde(rename = "RecordId")]
     record_id: Option<String>,
+}
+
+fn parse_aliyun_record_value(
+    record_type: &str,
+    value: &str,
+) -> (String, Option<u16>, Option<u16>, Option<u16>, Option<u8>, Option<String>) {
+    match record_type {
+        "SRV" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 4 {
+                let srv_priority = parts[0].parse::<u16>().ok();
+                let srv_weight = parts[1].parse::<u16>().ok();
+                let srv_port = parts[2].parse::<u16>().ok();
+                let content = parts[3..].join(" ");
+                (content, srv_priority, srv_weight, srv_port, None, None)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        "CAA" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let flags = parts[0].parse::<u8>().ok();
+                let tag = Some(parts[1].to_string());
+                let content = parts[2..].join(" ");
+                (content, None, None, None, flags, tag)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        _ => (value.to_string(), None, None, None, None, None),
+    }
 }

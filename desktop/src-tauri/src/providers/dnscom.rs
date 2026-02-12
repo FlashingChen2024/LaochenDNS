@@ -102,7 +102,16 @@ impl DnscomClient {
         params.insert("domain".to_string(), domain_name.to_string());
         params.insert("record".to_string(), req.name.clone());
         params.insert("type".to_string(), req.record_type.clone());
-        params.insert("value".to_string(), req.content.clone());
+        let value = dnscom_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
+        params.insert("value".to_string(), value);
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
             if let Some(mx) = req.mx_priority {
@@ -132,7 +141,16 @@ impl DnscomClient {
         params.insert("record_id".to_string(), req.id.clone());
         params.insert("record".to_string(), req.name.clone());
         params.insert("type".to_string(), req.record_type.clone());
-        params.insert("value".to_string(), req.content.clone());
+        let value = dnscom_value(
+            &req.record_type,
+            &req.content,
+            req.srv_priority,
+            req.srv_weight,
+            req.srv_port,
+            req.caa_flags,
+            req.caa_tag.as_deref(),
+        );
+        params.insert("value".to_string(), value);
         params.insert("ttl".to_string(), req.ttl.to_string());
         if req.record_type == "MX" {
             if let Some(mx) = req.mx_priority {
@@ -195,6 +213,65 @@ fn hmac_sha256_hex(key: &[u8], data: &[u8]) -> String {
     hex::encode(mac.finalize().into_bytes())
 }
 
+fn dnscom_value(
+    record_type: &str,
+    content: &str,
+    srv_priority: Option<u16>,
+    srv_weight: Option<u16>,
+    srv_port: Option<u16>,
+    caa_flags: Option<u8>,
+    caa_tag: Option<&str>,
+) -> String {
+    match record_type {
+        "SRV" => format!(
+            "{} {} {} {}",
+            srv_priority.unwrap_or(0),
+            srv_weight.unwrap_or(0),
+            srv_port.unwrap_or(0),
+            content
+        ),
+        "CAA" => format!(
+            "{} {} {}",
+            caa_flags.unwrap_or(0),
+            caa_tag.unwrap_or("issue"),
+            content
+        ),
+        _ => content.to_string(),
+    }
+}
+
+fn parse_dnscom_record_value(
+    record_type: &str,
+    value: &str,
+) -> (String, Option<u16>, Option<u16>, Option<u16>, Option<u8>, Option<String>) {
+    match record_type {
+        "SRV" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 4 {
+                let srv_priority = parts[0].parse::<u16>().ok();
+                let srv_weight = parts[1].parse::<u16>().ok();
+                let srv_port = parts[2].parse::<u16>().ok();
+                let content = parts[3..].join(" ");
+                (content, srv_priority, srv_weight, srv_port, None, None)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        "CAA" => {
+            let parts: Vec<&str> = value.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let flags = parts[0].parse::<u8>().ok();
+                let tag = Some(parts[1].to_string());
+                let content = parts[2..].join(" ");
+                (content, None, None, None, flags, tag)
+            } else {
+                (value.to_string(), None, None, None, None, None)
+            }
+        }
+        _ => (value.to_string(), None, None, None, None, None),
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct DnscomResponse<T> {
     code: i32,
@@ -246,20 +323,22 @@ struct DnscomRecord {
 
 impl DnscomRecord {
     fn to_dns_record(self, domain_name: &str) -> DnsRecord {
+        let (content, srv_priority, srv_weight, srv_port, caa_flags, caa_tag) =
+            parse_dnscom_record_value(&self.record_type, &self.value);
         DnsRecord {
             id: self.id.to_string(),
             provider: Provider::Dnscom,
             domain: domain_name.to_string(),
             record_type: self.record_type,
             name: self.record,
-            content: self.value,
+            content,
             ttl: self.ttl,
             mx_priority: self.mx,
-            srv_priority: None,
-            srv_weight: None,
-            srv_port: None,
-            caa_flags: None,
-            caa_tag: None,
+            srv_priority,
+            srv_weight,
+            srv_port,
+            caa_flags,
+            caa_tag,
         }
     }
 }
