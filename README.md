@@ -1,11 +1,7 @@
 # LaoChenDNS
-
-<<<<<<< HEAD
-=======
 <p align="center">
   <img src="desktop/src-tauri/icons/app-icon.svg" width="120" alt="LaoChenDNS Logo" />
 </p>
->>>>>>> 7ced066 (调整 README LOGO 显示)
 
 基于 Tauri 的桌面 DNS 管理工具，集成 Cloudflare 与 DNSPod，提供域名与解析记录的一站式管理，并支持本地加密存储。
 
