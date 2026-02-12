@@ -59,7 +59,48 @@ export function SettingsPage() {
               </Badge>
             </div>
           </CardContent>
+
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">阿里云DNS</span>
+              <Badge variant={vaultStatus?.aliyun_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.aliyun_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">华为云DNS</span>
+              <Badge variant={vaultStatus?.huawei_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.huawei_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">百度智能云DNS</span>
+              <Badge variant={vaultStatus?.baidu_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.baidu_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">DNS.COM</span>
+              <Badge variant={vaultStatus?.dnscom_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.dnscom_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">雨云DNS</span>
+              <Badge variant={vaultStatus?.rainyun_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.rainyun_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">腾讯云DNS</span>
+              <Badge variant={vaultStatus?.tencentcloud_configured ? "success" : "secondary"} className="uppercase">
+                {vaultStatus?.tencentcloud_configured ? "已存储" : "未存储"}
+              </Badge>
+            </div>
         </Card>
+
 
         <Card className="md:col-span-2">
           <CardHeader className="border-b border-[var(--color-border)] p-6">
@@ -75,7 +116,7 @@ export function SettingsPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-2xl font-bold text-[var(--color-accent)] uppercase tracking-tight">LaoChenDNS Desktop</h3>
-                <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-widest">v2.0.0 (重构版)</p>
+                <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-widest">v2.1.0</p>
                 <p className="text-sm text-[var(--color-text)] mt-2 leading-relaxed max-w-lg">
                   专为简约高效而设计的安全域名管理工具。采用瑞士国际主义设计风格，回归功能本质。
                 </p>

@@ -1,11 +1,25 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type Provider = "cloudflare" | "dnspod";
+export type Provider =
+  | "cloudflare"
+  | "dnspod"
+  | "aliyun"
+  | "huawei"
+  | "baidu"
+  | "dnscom"
+  | "rainyun"
+  | "tencentcloud";
 
 export type VaultStatus = {
   initialized: boolean;
   cloudflare_configured: boolean;
   dnspod_configured: boolean;
+  aliyun_configured: boolean;
+  huawei_configured: boolean;
+  baidu_configured: boolean;
+  dnscom_configured: boolean;
+  rainyun_configured: boolean;
+  tencentcloud_configured: boolean;
 };
 
 export type IntegrationInfoItem = {
@@ -16,6 +30,12 @@ export type IntegrationInfoItem = {
 export type IntegrationsInfo = {
   cloudflare: IntegrationInfoItem;
   dnspod: IntegrationInfoItem;
+  aliyun: IntegrationInfoItem;
+  huawei: IntegrationInfoItem;
+  baidu: IntegrationInfoItem;
+  dnscom: IntegrationInfoItem;
+  rainyun: IntegrationInfoItem;
+  tencentcloud: IntegrationInfoItem;
 };
 
 export type IntegrationTestResult = {
@@ -154,6 +174,103 @@ export async function clearDnspod(masterPassword: string): Promise<void> {
   return invoke("dnspod_clear", { masterPassword });
 }
 
+export async function testAliyun(
+  accessKeyId: string,
+  accessKeySecret: string,
+): Promise<IntegrationTestResult> {
+  return invoke("aliyun_test", { accessKeyId, accessKeySecret });
+}
+
+export async function saveAliyun(
+  masterPassword: string,
+  accessKeyId: string,
+  accessKeySecret: string,
+): Promise<void> {
+  return invoke("aliyun_save", { masterPassword, accessKeyId, accessKeySecret });
+}
+
+export async function clearAliyun(masterPassword: string): Promise<void> {
+  return invoke("aliyun_clear", { masterPassword });
+}
+
+export async function testHuawei(token: string): Promise<IntegrationTestResult> {
+  return invoke("huawei_test", { token });
+}
+
+export async function saveHuawei(masterPassword: string, token: string): Promise<void> {
+  return invoke("huawei_save", { masterPassword, token });
+}
+
+export async function clearHuawei(masterPassword: string): Promise<void> {
+  return invoke("huawei_clear", { masterPassword });
+}
+
+export async function testBaidu(
+  accessKeyId: string,
+  secretAccessKey: string,
+): Promise<IntegrationTestResult> {
+  return invoke("baidu_test", { accessKeyId, secretAccessKey });
+}
+
+export async function saveBaidu(
+  masterPassword: string,
+  accessKeyId: string,
+  secretAccessKey: string,
+): Promise<void> {
+  return invoke("baidu_save", { masterPassword, accessKeyId, secretAccessKey });
+}
+
+export async function clearBaidu(masterPassword: string): Promise<void> {
+  return invoke("baidu_clear", { masterPassword });
+}
+
+export async function testDnscom(apiKey: string, apiSecret: string): Promise<IntegrationTestResult> {
+  return invoke("dnscom_test", { apiKey, apiSecret });
+}
+
+export async function saveDnscom(
+  masterPassword: string,
+  apiKey: string,
+  apiSecret: string,
+): Promise<void> {
+  return invoke("dnscom_save", { masterPassword, apiKey, apiSecret });
+}
+
+export async function clearDnscom(masterPassword: string): Promise<void> {
+  return invoke("dnscom_clear", { masterPassword });
+}
+
+export async function testRainyun(apiKey: string): Promise<IntegrationTestResult> {
+  return invoke("rainyun_test", { apiKey });
+}
+
+export async function saveRainyun(masterPassword: string, apiKey: string): Promise<void> {
+  return invoke("rainyun_save", { masterPassword, apiKey });
+}
+
+export async function clearRainyun(masterPassword: string): Promise<void> {
+  return invoke("rainyun_clear", { masterPassword });
+}
+
+export async function testTencentCloud(
+  appId: string,
+  secretId: string,
+): Promise<IntegrationTestResult> {
+  return invoke("tencentcloud_test", { appId, secretId });
+}
+
+export async function saveTencentCloud(
+  masterPassword: string,
+  appId: string,
+  secretId: string,
+): Promise<void> {
+  return invoke("tencentcloud_save", { masterPassword, appId, secretId });
+}
+
+export async function clearTencentCloud(masterPassword: string): Promise<void> {
+  return invoke("tencentcloud_clear", { masterPassword });
+}
+
 export async function listDomains(
   masterPassword: string,
   providerFilter: Provider | null,
@@ -216,12 +333,14 @@ export async function deleteRecord(
   masterPassword: string,
   provider: Provider,
   domainId: string,
+  domainName: string,
   recordId: string,
 ): Promise<void> {
   return invoke("record_delete", {
     masterPassword,
     provider,
     domainId,
+    domainName,
     recordId,
   });
 }

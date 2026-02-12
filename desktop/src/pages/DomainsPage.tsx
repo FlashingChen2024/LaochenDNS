@@ -29,17 +29,71 @@ function StatusBadge({ status }: { status: DomainItem["status"] }) {
 }
 
 function ProviderIcon({ provider }: { provider: Provider }) {
-  return provider === "cloudflare" ? (
-    <div className="flex items-center gap-2">
-      <Cloud className="w-4 h-4 text-[#F38020]" />
-      <span>Cloudflare</span>
-    </div>
-  ) : (
-    <div className="flex items-center gap-2">
-      <Server className="w-4 h-4 text-[#D6204B]" />
-      <span>DNSPod</span>
-    </div>
-  );
+  switch (provider) {
+    case "cloudflare":
+      return (
+        <div className="flex items-center gap-2">
+          <Cloud className="w-4 h-4 text-[#F38020]" />
+          <span>Cloudflare</span>
+        </div>
+      );
+    case "dnspod":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#D6204B]" />
+          <span>DNSPod</span>
+        </div>
+      );
+    case "aliyun":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#FF6A00]" />
+          <span>阿里云DNS</span>
+        </div>
+      );
+    case "huawei":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#E30112]" />
+          <span>华为云DNS</span>
+        </div>
+      );
+    case "baidu":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#2932E1]" />
+          <span>百度智能云DNS</span>
+        </div>
+      );
+    case "dnscom":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#111827]" />
+          <span>DNS.COM</span>
+        </div>
+      );
+    case "rainyun":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#0EA5E9]" />
+          <span>雨云DNS</span>
+        </div>
+      );
+    case "tencentcloud":
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#0F7BFF]" />
+          <span>腾讯云DNS</span>
+        </div>
+      );
+    default:
+      return (
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-[#6B7280]" />
+          <span>未知厂商</span>
+        </div>
+      );
+  }
 }
 
 function buildDomainsCacheKey(provider: Provider | "all", search: string) {
@@ -93,6 +147,12 @@ export function DomainsPage() {
       { value: "all", label: "全部厂商" },
       { value: "cloudflare", label: "Cloudflare" },
       { value: "dnspod", label: "DNSPod" },
+      { value: "aliyun", label: "阿里云DNS" },
+      { value: "huawei", label: "华为云DNS" },
+      { value: "baidu", label: "百度智能云DNS" },
+      { value: "dnscom", label: "DNS.COM" },
+      { value: "rainyun", label: "雨云DNS" },
+      { value: "tencentcloud", label: "腾讯云DNS" },
     ],
     [],
   );
@@ -139,7 +199,7 @@ export function DomainsPage() {
         <div>
           <h1 className="text-4xl font-bold tracking-tight uppercase text-[var(--color-accent)] leading-none">域名资产</h1>
           <p className="text-sm font-medium text-[var(--color-text-secondary)] mt-2 tracking-wide uppercase">
-            Cloudflare / DNSPod 资产管理
+            多厂商 DNS 资产管理
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 pub enum Provider {
     Cloudflare,
     Dnspod,
+    Aliyun,
+    Huawei,
+    Baidu,
+    Dnscom,
+    Rainyun,
+    Tencentcloud,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,12 +18,24 @@ pub struct VaultStatus {
     pub initialized: bool,
     pub cloudflare_configured: bool,
     pub dnspod_configured: bool,
+    pub aliyun_configured: bool,
+    pub huawei_configured: bool,
+    pub baidu_configured: bool,
+    pub dnscom_configured: bool,
+    pub rainyun_configured: bool,
+    pub tencentcloud_configured: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntegrationsInfo {
     pub cloudflare: IntegrationInfoItem,
     pub dnspod: IntegrationInfoItem,
+    pub aliyun: IntegrationInfoItem,
+    pub huawei: IntegrationInfoItem,
+    pub baidu: IntegrationInfoItem,
+    pub dnscom: IntegrationInfoItem,
+    pub rainyun: IntegrationInfoItem,
+    pub tencentcloud: IntegrationInfoItem,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

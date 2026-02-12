@@ -16,6 +16,9 @@ dist-ssr
 playwright/
 playwright-report/
 test-results/
+tests/
+src/__tests__/
+playwright-ct.config.ts
 
 # Editor directories and files
 .vscode/*

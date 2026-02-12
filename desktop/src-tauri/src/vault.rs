@@ -21,14 +21,33 @@ pub struct VaultFile {
     pub key_check_b64: String,
     pub cloudflare_configured: bool,
     pub dnspod_configured: bool,
+    #[serde(default)]
+    pub aliyun_configured: bool,
+    #[serde(default)]
+    pub huawei_configured: bool,
+    #[serde(default)]
+    pub baidu_configured: bool,
+    #[serde(default)]
+    pub dnscom_configured: bool,
+    #[serde(default)]
+    pub rainyun_configured: bool,
+    #[serde(default)]
+    pub tencentcloud_configured: bool,
     pub nonce_b64: String,
     pub ciphertext_b64: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct PlainVault {
     pub cloudflare: Option<CloudflareCreds>,
     pub dnspod: Option<DnspodCreds>,
+    pub aliyun: Option<AliyunCreds>,
+    pub huawei: Option<HuaweiCreds>,
+    pub baidu: Option<BaiduCreds>,
+    pub dnscom: Option<DnscomCreds>,
+    pub rainyun: Option<RainyunCreds>,
+    pub tencentcloud: Option<TencentCloudCreds>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +87,128 @@ impl Zeroize for DnspodCreds {
 }
 
 impl Drop for DnspodCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AliyunCreds {
+    pub access_key_id: String,
+    pub access_key_secret: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for AliyunCreds {
+    fn zeroize(&mut self) {
+        self.access_key_id.zeroize();
+        self.access_key_secret.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for AliyunCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HuaweiCreds {
+    pub token: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for HuaweiCreds {
+    fn zeroize(&mut self) {
+        self.token.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for HuaweiCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BaiduCreds {
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for BaiduCreds {
+    fn zeroize(&mut self) {
+        self.access_key_id.zeroize();
+        self.secret_access_key.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for BaiduCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DnscomCreds {
+    pub api_key: String,
+    pub api_secret: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for DnscomCreds {
+    fn zeroize(&mut self) {
+        self.api_key.zeroize();
+        self.api_secret.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for DnscomCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RainyunCreds {
+    pub api_key: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for RainyunCreds {
+    fn zeroize(&mut self) {
+        self.api_key.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for RainyunCreds {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TencentCloudCreds {
+    pub app_id: String,
+    pub secret_id: String,
+    pub last_verified_at: Option<String>,
+}
+
+impl Zeroize for TencentCloudCreds {
+    fn zeroize(&mut self) {
+        self.app_id.zeroize();
+        self.secret_id.zeroize();
+        self.last_verified_at.zeroize();
+    }
+}
+
+impl Drop for TencentCloudCreds {
     fn drop(&mut self) {
         self.zeroize();
     }
@@ -136,6 +277,12 @@ pub fn initialize_vault(app: &AppHandle, master_password: &str) -> Result<(), Ap
         key_check_b64: check_b64,
         cloudflare_configured: false,
         dnspod_configured: false,
+        aliyun_configured: false,
+        huawei_configured: false,
+        baidu_configured: false,
+        dnscom_configured: false,
+        rainyun_configured: false,
+        tencentcloud_configured: false,
         nonce_b64: base64::engine::general_purpose::STANDARD.encode(nonce),
         ciphertext_b64: base64::engine::general_purpose::STANDARD.encode(ciphertext),
     };
@@ -208,6 +355,12 @@ pub fn encrypt_and_save_vault(
 
     file.cloudflare_configured = plain.cloudflare.is_some();
     file.dnspod_configured = plain.dnspod.is_some();
+    file.aliyun_configured = plain.aliyun.is_some();
+    file.huawei_configured = plain.huawei.is_some();
+    file.baidu_configured = plain.baidu.is_some();
+    file.dnscom_configured = plain.dnscom.is_some();
+    file.rainyun_configured = plain.rainyun.is_some();
+    file.tencentcloud_configured = plain.tencentcloud.is_some();
     file.nonce_b64 = base64::engine::general_purpose::STANDARD.encode(nonce);
     file.ciphertext_b64 = base64::engine::general_purpose::STANDARD.encode(ciphertext);
 

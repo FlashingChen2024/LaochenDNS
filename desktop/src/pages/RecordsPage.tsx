@@ -25,7 +25,26 @@ const RECORD_TYPES = ["A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV", "CAA"] as 
 const RECORDS_CACHE_PREFIX = "laochen_dns_records_cache_v1";
 
 function providerLabel(p: Provider) {
-  return p === "cloudflare" ? "Cloudflare" : "DNSPod";
+  switch (p) {
+    case "cloudflare":
+      return "Cloudflare";
+    case "dnspod":
+      return "DNSPod";
+    case "aliyun":
+      return "阿里云DNS";
+    case "huawei":
+      return "华为云DNS";
+    case "baidu":
+      return "百度智能云DNS";
+    case "dnscom":
+      return "DNS.COM";
+    case "rainyun":
+      return "雨云DNS";
+    case "tencentcloud":
+      return "腾讯云DNS";
+    default:
+      return "未知厂商";
+  }
 }
 
 function buildRecordsCacheKey(provider: Provider, domainId: string) {
@@ -132,7 +151,7 @@ export function RecordsPage() {
     setBusy(true);
     setError(null);
     try {
-      await deleteRecord(masterPassword, provider, domainId, r.id);
+      await deleteRecord(masterPassword, provider, domainId, domainName, r.id);
       notifySuccess("记录删除成功");
       await refreshRecords();
     } catch (e) {

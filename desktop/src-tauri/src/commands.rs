@@ -1,10 +1,16 @@
 use crate::error::AppError;
-use crate::providers::{cloudflare::CloudflareClient, dnspod::DnspodClient};
+use crate::providers::{
+    aliyun::AliyunClient, baidu::BaiduClient, cloudflare::CloudflareClient, dnscom::DnscomClient,
+    dnspod::DnspodClient, huawei::HuaweiClient, rainyun::RainyunClient, tencentcloud::TencentCloudClient,
+};
 use crate::types::{
     ConflictStrategy, DnsRecord, DomainItem, DomainStatus, IntegrationsInfo, IntegrationInfoItem,
     IntegrationTestResult, Provider, RecordCreateRequest, RecordUpdateRequest, VaultStatus,
 };
-use crate::vault::{self, CloudflareCreds, DnspodCreds};
+use crate::vault::{
+    self, AliyunCreds, BaiduCreds, CloudflareCreds, DnscomCreds, DnspodCreds, HuaweiCreds, RainyunCreds,
+    TencentCloudCreds,
+};
 use chrono::Utc;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use tauri::AppHandle;
@@ -16,6 +22,12 @@ pub fn vault_status(app: AppHandle) -> Result<VaultStatus, AppError> {
             initialized: false,
             cloudflare_configured: false,
             dnspod_configured: false,
+            aliyun_configured: false,
+            huawei_configured: false,
+            baidu_configured: false,
+            dnscom_configured: false,
+            rainyun_configured: false,
+            tencentcloud_configured: false,
         });
     }
 
@@ -24,6 +36,12 @@ pub fn vault_status(app: AppHandle) -> Result<VaultStatus, AppError> {
         initialized: true,
         cloudflare_configured: file.cloudflare_configured,
         dnspod_configured: file.dnspod_configured,
+        aliyun_configured: file.aliyun_configured,
+        huawei_configured: file.huawei_configured,
+        baidu_configured: file.baidu_configured,
+        dnscom_configured: file.dnscom_configured,
+        rainyun_configured: file.rainyun_configured,
+        tencentcloud_configured: file.tencentcloud_configured,
     })
 }
 
@@ -52,7 +70,40 @@ pub fn integrations_get(app: AppHandle, master_password: String) -> Result<Integ
         configured: file.dnspod_configured,
         last_verified_at: plain.dnspod.as_ref().and_then(|c| c.last_verified_at.clone()),
     };
-    Ok(IntegrationsInfo { cloudflare, dnspod })
+    let aliyun = IntegrationInfoItem {
+        configured: file.aliyun_configured,
+        last_verified_at: plain.aliyun.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    let huawei = IntegrationInfoItem {
+        configured: file.huawei_configured,
+        last_verified_at: plain.huawei.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    let baidu = IntegrationInfoItem {
+        configured: file.baidu_configured,
+        last_verified_at: plain.baidu.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    let dnscom = IntegrationInfoItem {
+        configured: file.dnscom_configured,
+        last_verified_at: plain.dnscom.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    let rainyun = IntegrationInfoItem {
+        configured: file.rainyun_configured,
+        last_verified_at: plain.rainyun.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    let tencentcloud = IntegrationInfoItem {
+        configured: file.tencentcloud_configured,
+        last_verified_at: plain.tencentcloud.as_ref().and_then(|c| c.last_verified_at.clone()),
+    };
+    Ok(IntegrationsInfo {
+        cloudflare,
+        dnspod,
+        aliyun,
+        huawei,
+        baidu,
+        dnscom,
+        rainyun,
+        tencentcloud,
+    })
 }
 
 
@@ -143,6 +194,252 @@ pub fn dnspod_clear(app: AppHandle, master_password: String) -> Result<(), AppEr
 }
 
 #[tauri::command]
+pub async fn aliyun_test(access_key_id: String, access_key_secret: String) -> Result<IntegrationTestResult, AppError> {
+    let client = AliyunClient::new(access_key_id, access_key_secret)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "Aliyun authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn aliyun_save(
+    app: AppHandle,
+    master_password: String,
+    access_key_id: String,
+    access_key_secret: String,
+) -> Result<(), AppError> {
+    let client = AliyunClient::new(access_key_id.clone(), access_key_secret.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.aliyun = Some(AliyunCreds {
+        access_key_id,
+        access_key_secret,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn aliyun_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.aliyun = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub async fn huawei_test(token: String) -> Result<IntegrationTestResult, AppError> {
+    let client = HuaweiClient::new(token)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "Huawei Cloud authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn huawei_save(app: AppHandle, master_password: String, token: String) -> Result<(), AppError> {
+    let client = HuaweiClient::new(token.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.huawei = Some(HuaweiCreds {
+        token,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn huawei_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.huawei = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub async fn baidu_test(access_key_id: String, secret_access_key: String) -> Result<IntegrationTestResult, AppError> {
+    let client = BaiduClient::new(access_key_id, secret_access_key)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "Baidu Cloud authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn baidu_save(
+    app: AppHandle,
+    master_password: String,
+    access_key_id: String,
+    secret_access_key: String,
+) -> Result<(), AppError> {
+    let client = BaiduClient::new(access_key_id.clone(), secret_access_key.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.baidu = Some(BaiduCreds {
+        access_key_id,
+        secret_access_key,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn baidu_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.baidu = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub async fn dnscom_test(api_key: String, api_secret: String) -> Result<IntegrationTestResult, AppError> {
+    let client = DnscomClient::new(api_key, api_secret)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "DNS.COM authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn dnscom_save(
+    app: AppHandle,
+    master_password: String,
+    api_key: String,
+    api_secret: String,
+) -> Result<(), AppError> {
+    let client = DnscomClient::new(api_key.clone(), api_secret.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.dnscom = Some(DnscomCreds {
+        api_key,
+        api_secret,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn dnscom_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.dnscom = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub async fn rainyun_test(api_key: String) -> Result<IntegrationTestResult, AppError> {
+    let client = RainyunClient::new(api_key)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "Rainyun authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn rainyun_save(app: AppHandle, master_password: String, api_key: String) -> Result<(), AppError> {
+    let client = RainyunClient::new(api_key.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.rainyun = Some(RainyunCreds {
+        api_key,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn rainyun_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.rainyun = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub async fn tencentcloud_test(app_id: String, secret_id: String) -> Result<IntegrationTestResult, AppError> {
+    let client = TencentCloudClient::new(app_id, secret_id)?;
+    match client.test().await {
+        Ok(_) => Ok(IntegrationTestResult {
+            ok: true,
+            message: "Tencent Cloud authentication succeeded".to_string(),
+        }),
+        Err(e) => Ok(IntegrationTestResult {
+            ok: false,
+            message: e.message,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn tencentcloud_save(
+    app: AppHandle,
+    master_password: String,
+    app_id: String,
+    secret_id: String,
+) -> Result<(), AppError> {
+    let client = TencentCloudClient::new(app_id.clone(), secret_id.clone())?;
+    client.test().await?;
+
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    let now = Utc::now().to_rfc3339();
+    plain.tencentcloud = Some(TencentCloudCreds {
+        app_id,
+        secret_id,
+        last_verified_at: Some(now),
+    });
+
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
+pub fn tencentcloud_clear(app: AppHandle, master_password: String) -> Result<(), AppError> {
+    let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
+    plain.tencentcloud = None;
+    vault::encrypt_and_save_vault(&app, file, &plain, &master_password)
+}
+
+#[tauri::command]
 pub async fn domains_list(
     app: AppHandle,
     master_password: String,
@@ -155,6 +452,12 @@ pub async fn domains_list(
     let search_norm = search.unwrap_or_default().to_lowercase();
     let wants_cloudflare = provider_filter.is_none() || provider_filter == Some(Provider::Cloudflare);
     let wants_dnspod = provider_filter.is_none() || provider_filter == Some(Provider::Dnspod);
+    let wants_aliyun = provider_filter.is_none() || provider_filter == Some(Provider::Aliyun);
+    let wants_huawei = provider_filter.is_none() || provider_filter == Some(Provider::Huawei);
+    let wants_baidu = provider_filter.is_none() || provider_filter == Some(Provider::Baidu);
+    let wants_dnscom = provider_filter.is_none() || provider_filter == Some(Provider::Dnscom);
+    let wants_rainyun = provider_filter.is_none() || provider_filter == Some(Provider::Rainyun);
+    let wants_tencentcloud = provider_filter.is_none() || provider_filter == Some(Provider::Tencentcloud);
 
     let make_error_item = |provider: Provider, display_name: &str, e: AppError| {
         let status = match e.code.as_str() {
@@ -174,109 +477,162 @@ pub async fn domains_list(
 
     let cf_creds = plain.cloudflare.clone();
     let dp_creds = plain.dnspod.clone();
+    let aliyun_creds = plain.aliyun.clone();
+    let huawei_creds = plain.huawei.clone();
+    let baidu_creds = plain.baidu.clone();
+    let dnscom_creds = plain.dnscom.clone();
+    let rainyun_creds = plain.rainyun.clone();
+    let tencentcloud_creds = plain.tencentcloud.clone();
 
-    if wants_cloudflare && wants_dnspod {
-        match (cf_creds, dp_creds) {
-            (Some(cf), Some(dp)) => {
-                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
-                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
-                let cf_result = cf_client.list_domains().await;
-                let dp_result = dp_client.list_domains().await;
-                match cf_result {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
-                }
-                match dp_result {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
-                }
+    if wants_cloudflare {
+        if let Some(cf) = cf_creds {
+            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            match cf_client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
             }
-            (Some(cf), None) => {
-                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
-                match cf_client.list_domains().await {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
-                }
-                items.push(DomainItem {
-                    provider: Provider::Dnspod,
-                    name: "DNSPod".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
-            }
-            (None, Some(dp)) => {
-                items.push(DomainItem {
-                    provider: Provider::Cloudflare,
-                    name: "Cloudflare".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
-                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
-                match dp_client.list_domains().await {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
-                }
-            }
-            (None, None) => {
-                items.push(DomainItem {
-                    provider: Provider::Cloudflare,
-                    name: "Cloudflare".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
-                items.push(DomainItem {
-                    provider: Provider::Dnspod,
-                    name: "DNSPod".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
-            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Cloudflare,
+                name: "Cloudflare".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
         }
-    } else {
-        if wants_cloudflare {
-            if let Some(cf) = cf_creds {
-                let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
-                match cf_client.list_domains().await {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
-                }
-            } else {
-                items.push(DomainItem {
-                    provider: Provider::Cloudflare,
-                    name: "Cloudflare".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
-            }
-        }
+    }
 
-        if wants_dnspod {
-            if let Some(dp) = dp_creds {
-                let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
-                match dp_client.list_domains().await {
-                    Ok(mut v) => items.append(&mut v),
-                    Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
-                }
-            } else {
-                items.push(DomainItem {
-                    provider: Provider::Dnspod,
-                    name: "DNSPod".to_string(),
-                    provider_id: "".to_string(),
-                    status: DomainStatus::NotConfigured,
-                    records_count: None,
-                    last_changed_at: None,
-                });
+    if wants_dnspod {
+        if let Some(dp) = dp_creds {
+            let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
+            match dp_client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Dnspod, "DNSPod", e)),
             }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Dnspod,
+                name: "DNSPod".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_aliyun {
+        if let Some(aliyun) = aliyun_creds {
+            let client = AliyunClient::new(aliyun.access_key_id.clone(), aliyun.access_key_secret.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Aliyun, "Aliyun", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Aliyun,
+                name: "阿里云DNS".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_huawei {
+        if let Some(huawei) = huawei_creds {
+            let client = HuaweiClient::new(huawei.token.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Huawei, "华为云DNS", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Huawei,
+                name: "华为云DNS".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_baidu {
+        if let Some(baidu) = baidu_creds {
+            let client = BaiduClient::new(baidu.access_key_id.clone(), baidu.secret_access_key.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Baidu, "百度智能云DNS", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Baidu,
+                name: "百度智能云DNS".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_dnscom {
+        if let Some(dnscom) = dnscom_creds {
+            let client = DnscomClient::new(dnscom.api_key.clone(), dnscom.api_secret.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Dnscom, "DNS.COM", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Dnscom,
+                name: "DNS.COM".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_rainyun {
+        if let Some(rainyun) = rainyun_creds {
+            let client = RainyunClient::new(rainyun.api_key.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Rainyun, "Rainyun", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Rainyun,
+                name: "雨云DNS".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
+        }
+    }
+
+    if wants_tencentcloud {
+        if let Some(tc) = tencentcloud_creds {
+            let client = TencentCloudClient::new(tc.app_id.clone(), tc.secret_id.clone())?;
+            match client.list_domains().await {
+                Ok(mut v) => items.append(&mut v),
+                Err(e) => items.push(make_error_item(Provider::Tencentcloud, "腾讯云DNS", e)),
+            }
+        } else {
+            items.push(DomainItem {
+                provider: Provider::Tencentcloud,
+                name: "腾讯云DNS".to_string(),
+                provider_id: "".to_string(),
+                status: DomainStatus::NotConfigured,
+                records_count: None,
+                last_changed_at: None,
+            });
         }
     }
 
@@ -313,6 +669,48 @@ pub async fn records_list(
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
             let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Aliyun => {
+            let aliyun = plain
+                .aliyun
+                .ok_or_else(|| AppError::new("not_configured", "Aliyun is not configured"))?;
+            let client = AliyunClient::new(aliyun.access_key_id.clone(), aliyun.access_key_secret.clone())?;
+            client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Huawei => {
+            let huawei = plain
+                .huawei
+                .ok_or_else(|| AppError::new("not_configured", "Huawei Cloud is not configured"))?;
+            let client = HuaweiClient::new(huawei.token.clone())?;
+            client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Baidu => {
+            let baidu = plain
+                .baidu
+                .ok_or_else(|| AppError::new("not_configured", "Baidu Cloud is not configured"))?;
+            let client = BaiduClient::new(baidu.access_key_id.clone(), baidu.secret_access_key.clone())?;
+            client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Dnscom => {
+            let dnscom = plain
+                .dnscom
+                .ok_or_else(|| AppError::new("not_configured", "DNS.COM is not configured"))?;
+            let client = DnscomClient::new(dnscom.api_key.clone(), dnscom.api_secret.clone())?;
+            client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Rainyun => {
+            let rainyun = plain
+                .rainyun
+                .ok_or_else(|| AppError::new("not_configured", "Rainyun is not configured"))?;
+            let client = RainyunClient::new(rainyun.api_key.clone())?;
+            client.list_records(&domain_id, &domain_name).await
+        }
+        Provider::Tencentcloud => {
+            let tencentcloud = plain
+                .tencentcloud
+                .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
+            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            client.list_records(&domain_id, &domain_name).await
         }
     }
 }
@@ -403,6 +801,234 @@ pub async fn record_create(
                 }
             }
             dp_client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Aliyun => {
+            let aliyun = plain
+                .aliyun
+                .ok_or_else(|| AppError::new("not_configured", "Aliyun is not configured"))?;
+            let client = AliyunClient::new(aliyun.access_key_id.clone(), aliyun.access_key_secret.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Huawei => {
+            let huawei = plain
+                .huawei
+                .ok_or_else(|| AppError::new("not_configured", "Huawei Cloud is not configured"))?;
+            let client = HuaweiClient::new(huawei.token.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Baidu => {
+            let baidu = plain
+                .baidu
+                .ok_or_else(|| AppError::new("not_configured", "Baidu Cloud is not configured"))?;
+            let client = BaiduClient::new(baidu.access_key_id.clone(), baidu.secret_access_key.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Dnscom => {
+            let dnscom = plain
+                .dnscom
+                .ok_or_else(|| AppError::new("not_configured", "DNS.COM is not configured"))?;
+            let client = DnscomClient::new(dnscom.api_key.clone(), dnscom.api_secret.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Rainyun => {
+            let rainyun = plain
+                .rainyun
+                .ok_or_else(|| AppError::new("not_configured", "Rainyun is not configured"))?;
+            let client = RainyunClient::new(rainyun.api_key.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Tencentcloud => {
+            let tencentcloud = plain
+                .tencentcloud
+                .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
+            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            let existing = client.list_records(&domain_id, &domain_name).await?;
+            let conflicts: Vec<&DnsRecord> = existing
+                .iter()
+                .filter(|r| r.record_type == req.record_type && r.name == req.name)
+                .collect();
+            if !conflicts.is_empty() {
+                match req.conflict_strategy {
+                    ConflictStrategy::DoNotCreate => {
+                        return Err(AppError::new("conflict", "Record already exists"));
+                    }
+                    ConflictStrategy::Overwrite => {
+                        if conflicts.len() != 1 {
+                            return Err(AppError::new("conflict", "Multiple conflicting records found"));
+                        }
+                        let update = RecordUpdateRequest {
+                            id: conflicts[0].id.clone(),
+                            record_type: req.record_type,
+                            name: req.name,
+                            content: req.content,
+                            ttl: req.ttl,
+                            mx_priority: req.mx_priority,
+                            srv_priority: req.srv_priority,
+                            srv_weight: req.srv_weight,
+                            srv_port: req.srv_port,
+                            caa_flags: req.caa_flags,
+                            caa_tag: req.caa_tag,
+                        };
+                        return client.update_record(&domain_id, &domain_name, &update).await;
+                    }
+                }
+            }
+            client.create_record(&domain_id, &domain_name, &req).await
         }
     }
 }
@@ -495,6 +1121,48 @@ pub async fn record_update(
             let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.update_record(&domain_id, &domain_name, &req).await
         }
+        Provider::Aliyun => {
+            let aliyun = plain
+                .aliyun
+                .ok_or_else(|| AppError::new("not_configured", "Aliyun is not configured"))?;
+            let client = AliyunClient::new(aliyun.access_key_id.clone(), aliyun.access_key_secret.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Huawei => {
+            let huawei = plain
+                .huawei
+                .ok_or_else(|| AppError::new("not_configured", "Huawei Cloud is not configured"))?;
+            let client = HuaweiClient::new(huawei.token.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Baidu => {
+            let baidu = plain
+                .baidu
+                .ok_or_else(|| AppError::new("not_configured", "Baidu Cloud is not configured"))?;
+            let client = BaiduClient::new(baidu.access_key_id.clone(), baidu.secret_access_key.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Dnscom => {
+            let dnscom = plain
+                .dnscom
+                .ok_or_else(|| AppError::new("not_configured", "DNS.COM is not configured"))?;
+            let client = DnscomClient::new(dnscom.api_key.clone(), dnscom.api_secret.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Rainyun => {
+            let rainyun = plain
+                .rainyun
+                .ok_or_else(|| AppError::new("not_configured", "Rainyun is not configured"))?;
+            let client = RainyunClient::new(rainyun.api_key.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
+        Provider::Tencentcloud => {
+            let tencentcloud = plain
+                .tencentcloud
+                .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
+            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            client.update_record(&domain_id, &domain_name, &req).await
+        }
     }
 }
 
@@ -504,6 +1172,7 @@ pub async fn record_delete(
     master_password: String,
     provider: Provider,
     domain_id: String,
+    domain_name: String,
     record_id: String,
 ) -> Result<(), AppError> {
     let (_, plain) = vault::decrypt_vault(&app, &master_password)?;
@@ -521,6 +1190,48 @@ pub async fn record_delete(
                 .ok_or_else(|| AppError::new("not_configured", "DNSPod is not configured"))?;
             let dp_client = DnspodClient::new(dp.token_id.clone(), dp.token.clone())?;
             dp_client.delete_record(&domain_id, &record_id).await
+        }
+        Provider::Aliyun => {
+            let aliyun = plain
+                .aliyun
+                .ok_or_else(|| AppError::new("not_configured", "Aliyun is not configured"))?;
+            let client = AliyunClient::new(aliyun.access_key_id.clone(), aliyun.access_key_secret.clone())?;
+            client.delete_record(&domain_id, &record_id).await
+        }
+        Provider::Huawei => {
+            let huawei = plain
+                .huawei
+                .ok_or_else(|| AppError::new("not_configured", "Huawei Cloud is not configured"))?;
+            let client = HuaweiClient::new(huawei.token.clone())?;
+            client.delete_record(&domain_id, &record_id).await
+        }
+        Provider::Baidu => {
+            let baidu = plain
+                .baidu
+                .ok_or_else(|| AppError::new("not_configured", "Baidu Cloud is not configured"))?;
+            let client = BaiduClient::new(baidu.access_key_id.clone(), baidu.secret_access_key.clone())?;
+            client.delete_record(&domain_id, &record_id).await
+        }
+        Provider::Dnscom => {
+            let dnscom = plain
+                .dnscom
+                .ok_or_else(|| AppError::new("not_configured", "DNS.COM is not configured"))?;
+            let client = DnscomClient::new(dnscom.api_key.clone(), dnscom.api_secret.clone())?;
+            client.delete_record(&domain_id, &domain_name, &record_id).await
+        }
+        Provider::Rainyun => {
+            let rainyun = plain
+                .rainyun
+                .ok_or_else(|| AppError::new("not_configured", "Rainyun is not configured"))?;
+            let client = RainyunClient::new(rainyun.api_key.clone())?;
+            client.delete_record(&domain_id, &record_id).await
+        }
+        Provider::Tencentcloud => {
+            let tencentcloud = plain
+                .tencentcloud
+                .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
+            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            client.delete_record(&domain_id, &domain_name, &record_id).await
         }
     }
 }
