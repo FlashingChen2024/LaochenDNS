@@ -397,8 +397,8 @@ pub fn rainyun_clear(app: AppHandle, master_password: String) -> Result<(), AppE
 }
 
 #[tauri::command]
-pub async fn tencentcloud_test(app_id: String, secret_id: String) -> Result<IntegrationTestResult, AppError> {
-    let client = TencentCloudClient::new(app_id, secret_id)?;
+pub async fn tencentcloud_test(secret_id: String, secret_key: String) -> Result<IntegrationTestResult, AppError> {
+    let client = TencentCloudClient::new(secret_id, secret_key)?;
     match client.test().await {
         Ok(_) => Ok(IntegrationTestResult {
             ok: true,
@@ -415,17 +415,17 @@ pub async fn tencentcloud_test(app_id: String, secret_id: String) -> Result<Inte
 pub async fn tencentcloud_save(
     app: AppHandle,
     master_password: String,
-    app_id: String,
     secret_id: String,
+    secret_key: String,
 ) -> Result<(), AppError> {
-    let client = TencentCloudClient::new(app_id.clone(), secret_id.clone())?;
+    let client = TencentCloudClient::new(secret_id.clone(), secret_key.clone())?;
     client.test().await?;
 
     let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
     let now = Utc::now().to_rfc3339();
     plain.tencentcloud = Some(TencentCloudCreds {
-        app_id,
         secret_id,
+        secret_key,
         last_verified_at: Some(now),
     });
 
@@ -619,7 +619,7 @@ pub async fn domains_list(
 
     if wants_tencentcloud {
         if let Some(tc) = tencentcloud_creds {
-            let client = TencentCloudClient::new(tc.app_id.clone(), tc.secret_id.clone())?;
+            let client = TencentCloudClient::new(tc.secret_id.clone(), tc.secret_key.clone())?;
             match client.list_domains().await {
                 Ok(mut v) => items.append(&mut v),
                 Err(e) => items.push(make_error_item(Provider::Tencentcloud, "腾讯云DNS", e)),
@@ -709,7 +709,7 @@ pub async fn records_list(
             let tencentcloud = plain
                 .tencentcloud
                 .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
-            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            let client = TencentCloudClient::new(tencentcloud.secret_id.clone(), tencentcloud.secret_key.clone())?;
             client.list_records(&domain_id, &domain_name).await
         }
     }
@@ -996,7 +996,7 @@ pub async fn record_create(
             let tencentcloud = plain
                 .tencentcloud
                 .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
-            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            let client = TencentCloudClient::new(tencentcloud.secret_id.clone(), tencentcloud.secret_key.clone())?;
             let existing = client.list_records(&domain_id, &domain_name).await?;
             let conflicts: Vec<&DnsRecord> = existing
                 .iter()
@@ -1160,7 +1160,7 @@ pub async fn record_update(
             let tencentcloud = plain
                 .tencentcloud
                 .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
-            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            let client = TencentCloudClient::new(tencentcloud.secret_id.clone(), tencentcloud.secret_key.clone())?;
             client.update_record(&domain_id, &domain_name, &req).await
         }
     }
@@ -1230,7 +1230,7 @@ pub async fn record_delete(
             let tencentcloud = plain
                 .tencentcloud
                 .ok_or_else(|| AppError::new("not_configured", "Tencent Cloud is not configured"))?;
-            let client = TencentCloudClient::new(tencentcloud.app_id.clone(), tencentcloud.secret_id.clone())?;
+            let client = TencentCloudClient::new(tencentcloud.secret_id.clone(), tencentcloud.secret_key.clone())?;
             client.delete_record(&domain_id, &domain_name, &record_id).await
         }
     }

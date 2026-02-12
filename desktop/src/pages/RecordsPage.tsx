@@ -15,6 +15,7 @@ import {
   resolveErrorMessage,
   updateRecord,
   type ConflictStrategy,
+  type DomainItem,
   type DnsRecord,
   type Provider,
   type RecordCreateRequest,
@@ -23,6 +24,7 @@ import {
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV", "CAA"] as const;
 const RECORDS_CACHE_PREFIX = "laochen_dns_records_cache_v1";
+const DOMAINS_CACHE_PREFIX = "laochen_dns_domains_cache_v1";
 
 function providerLabel(p: Provider) {
   switch (p) {
@@ -79,6 +81,18 @@ function writeRecordsCache(cacheKey: string, rows: DnsRecord[]) {
   }
 }
 
+function readDomainsCache() {
+  try {
+    const raw = localStorage.getItem(DOMAINS_CACHE_PREFIX);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { rows?: DomainItem[] };
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    return parsed.rows;
+  } catch {
+    return null;
+  }
+}
+
 export function RecordsPage() {
   const { masterPassword, notifyError, notifySuccess } = useApp();
   const navigate = useNavigate();
@@ -95,8 +109,23 @@ export function RecordsPage() {
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<DnsRecord | null>(null);
 
+  const resolvedDomainName = useMemo(() => {
+    if (domainName) return domainName;
+    const cached = readDomainsCache();
+    if (cached) {
+      const match = cached.find((item) => item.provider === provider && item.provider_id === domainId);
+      if (match?.name) return match.name;
+    }
+    if (domainId.includes(".")) return domainId;
+    return "";
+  }, [domainName, provider, domainId]);
+
   const loadWithCache = async () => {
     if (!masterPassword) return;
+    if (!domainId && !resolvedDomainName) {
+      setError("域名参数缺失，请返回域名列表重新进入");
+      return;
+    }
     const cacheKey = buildRecordsCacheKey(provider, domainId);
     const cached = readRecordsCache(cacheKey);
     if (cached) {
@@ -105,7 +134,7 @@ export function RecordsPage() {
     setBusy(true);
     setError(null);
     try {
-      const data = await listRecords(masterPassword, provider, domainId, domainName);
+      const data = await listRecords(masterPassword, provider, domainId, resolvedDomainName);
       const current = cached ?? rows;
       if (!areRecordsEqual(data, current)) {
         setRows(data);
@@ -120,11 +149,15 @@ export function RecordsPage() {
 
   const refreshRecords = async () => {
     if (!masterPassword) return;
+    if (!domainId && !resolvedDomainName) {
+      setError("域名参数缺失，请返回域名列表重新进入");
+      return;
+    }
     const cacheKey = buildRecordsCacheKey(provider, domainId);
     setBusy(true);
     setError(null);
     try {
-      const data = await listRecords(masterPassword, provider, domainId, domainName);
+      const data = await listRecords(masterPassword, provider, domainId, resolvedDomainName);
       if (!areRecordsEqual(data, rows)) {
         setRows(data);
       }
@@ -138,20 +171,24 @@ export function RecordsPage() {
 
   useEffect(() => {
     void loadWithCache();
-  }, [masterPassword, provider, domainId, domainName]);
+  }, [masterPassword, provider, domainId, resolvedDomainName]);
 
   const title = useMemo(() => {
-    if (!domainName) return "解析记录";
-    return `${domainName}`;
-  }, [domainName]);
+    if (!resolvedDomainName) return "解析记录";
+    return `${resolvedDomainName}`;
+  }, [resolvedDomainName]);
 
   const onDelete = async (r: DnsRecord) => {
     if (!masterPassword) return;
+    if (!domainId && !resolvedDomainName) {
+      setError("域名参数缺失，请返回域名列表重新进入");
+      return;
+    }
     setConfirming(null);
     setBusy(true);
     setError(null);
     try {
-      await deleteRecord(masterPassword, provider, domainId, domainName, r.id);
+      await deleteRecord(masterPassword, provider, domainId, resolvedDomainName, r.id);
       notifySuccess("记录删除成功");
       await refreshRecords();
     } catch (e) {
@@ -261,9 +298,13 @@ export function RecordsPage() {
           onClose={() => setCreating(false)}
           onSubmit={async (req) => {
             if (!masterPassword) return;
+            if (!domainId && !resolvedDomainName) {
+              setError("域名参数缺失，请返回域名列表重新进入");
+              return;
+            }
             setBusy(true);
             try {
-              await createRecord(masterPassword, provider, domainId, domainName, req);
+              await createRecord(masterPassword, provider, domainId, resolvedDomainName, req);
               notifySuccess("记录已创建");
               await refreshRecords();
             } catch (e) {
@@ -282,6 +323,10 @@ export function RecordsPage() {
           onClose={() => setEditing(null)}
           onSubmit={async (req) => {
             if (!masterPassword || !editing) return;
+            if (!domainId && !resolvedDomainName) {
+              setError("域名参数缺失，请返回域名列表重新进入");
+              return;
+            }
             setBusy(true);
             try {
               const update: RecordUpdateRequest = {
@@ -297,7 +342,7 @@ export function RecordsPage() {
                 caa_flags: req.caa_flags ?? null,
                 caa_tag: req.caa_tag ?? null,
               };
-              await updateRecord(masterPassword, provider, domainId, domainName, update);
+              await updateRecord(masterPassword, provider, domainId, resolvedDomainName, update);
               notifySuccess("记录已更新");
               await refreshRecords();
             } catch (e) {

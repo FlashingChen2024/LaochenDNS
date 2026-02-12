@@ -195,14 +195,15 @@ impl Drop for RainyunCreds {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TencentCloudCreds {
-    pub app_id: String,
+    #[serde(alias = "app_id")]
+    pub secret_key: String,
     pub secret_id: String,
     pub last_verified_at: Option<String>,
 }
 
 impl Zeroize for TencentCloudCreds {
     fn zeroize(&mut self) {
-        self.app_id.zeroize();
+        self.secret_key.zeroize();
         self.secret_id.zeroize();
         self.last_verified_at.zeroize();
     }

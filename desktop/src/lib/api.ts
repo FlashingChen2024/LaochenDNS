@@ -253,18 +253,18 @@ export async function clearRainyun(masterPassword: string): Promise<void> {
 }
 
 export async function testTencentCloud(
-  appId: string,
   secretId: string,
+  secretKey: string,
 ): Promise<IntegrationTestResult> {
-  return invoke("tencentcloud_test", { appId, secretId });
+  return invoke("tencentcloud_test", { secretId, secretKey });
 }
 
 export async function saveTencentCloud(
   masterPassword: string,
-  appId: string,
   secretId: string,
+  secretKey: string,
 ): Promise<void> {
-  return invoke("tencentcloud_save", { masterPassword, appId, secretId });
+  return invoke("tencentcloud_save", { masterPassword, secretId, secretKey });
 }
 
 export async function clearTencentCloud(masterPassword: string): Promise<void> {

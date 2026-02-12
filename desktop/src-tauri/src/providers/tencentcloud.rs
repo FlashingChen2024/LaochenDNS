@@ -21,7 +21,7 @@ pub struct TencentCloudClient {
 }
 
 impl TencentCloudClient {
-    pub fn new(app_id: String, secret_id: String) -> Result<Self, AppError> {
+    pub fn new(secret_id: String, secret_key: String) -> Result<Self, AppError> {
         let client = reqwest::Client::builder()
             .user_agent("LaoChenDNS/0.1.0")
             .timeout(Duration::from_secs(30))
@@ -30,7 +30,7 @@ impl TencentCloudClient {
         Ok(Self {
             client,
             secret_id,
-            secret_key: app_id,
+            secret_key,
         })
     }
 
@@ -99,7 +99,8 @@ impl TencentCloudClient {
         req: &RecordCreateRequest,
     ) -> Result<DnsRecord, AppError> {
         let mut payload = domain_selector(domain_id, domain_name)?;
-        payload.insert("SubDomain".to_string(), serde_json::json!(req.name));
+        let sub_domain = if req.name.trim().is_empty() { "@" } else { req.name.as_str() };
+        payload.insert("SubDomain".to_string(), serde_json::json!(sub_domain));
         payload.insert("RecordType".to_string(), serde_json::json!(req.record_type));
         payload.insert("RecordLine".to_string(), serde_json::json!("默认"));
         payload.insert(
@@ -115,7 +116,12 @@ impl TencentCloudClient {
             )),
         );
         payload.insert("TTL".to_string(), serde_json::json!(req.ttl));
-        payload.insert("MX".to_string(), serde_json::json!(req.mx_priority.unwrap_or(0)));
+        if req.record_type == "MX" {
+            let mx = req
+                .mx_priority
+                .ok_or_else(|| AppError::new("invalid_input", "MX record requires mx priority"))?;
+            payload.insert("MX".to_string(), serde_json::json!(mx));
+        }
         let value = self
             .request("CreateRecord", Value::Object(payload))
             .await?;
@@ -140,7 +146,8 @@ impl TencentCloudClient {
         let mut payload = domain_selector(domain_id, domain_name)?;
         let record_id = parse_u64(&req.id).unwrap_or(0);
         payload.insert("RecordId".to_string(), serde_json::json!(record_id));
-        payload.insert("SubDomain".to_string(), serde_json::json!(req.name));
+        let sub_domain = if req.name.trim().is_empty() { "@" } else { req.name.as_str() };
+        payload.insert("SubDomain".to_string(), serde_json::json!(sub_domain));
         payload.insert("RecordType".to_string(), serde_json::json!(req.record_type));
         payload.insert("RecordLine".to_string(), serde_json::json!("默认"));
         payload.insert(
@@ -156,7 +163,12 @@ impl TencentCloudClient {
             )),
         );
         payload.insert("TTL".to_string(), serde_json::json!(req.ttl));
-        payload.insert("MX".to_string(), serde_json::json!(req.mx_priority.unwrap_or(0)));
+        if req.record_type == "MX" {
+            let mx = req
+                .mx_priority
+                .ok_or_else(|| AppError::new("invalid_input", "MX record requires mx priority"))?;
+            payload.insert("MX".to_string(), serde_json::json!(mx));
+        }
         let value = self
             .request("ModifyRecord", Value::Object(payload))
             .await?;
@@ -181,14 +193,13 @@ impl TencentCloudClient {
     }
 
     async fn request(&self, action: &str, payload: Value) -> Result<Value, AppError> {
-        let timestamp = Utc::now().timestamp();
-        let date = Utc::now().format("%Y-%m-%d").to_string();
+        let now = Utc::now();
+        let timestamp = now.timestamp();
+        let date = now.format("%Y-%m-%d").to_string();
         let payload_str =
             serde_json::to_string(&payload).map_err(|e| AppError::new("serialize_error", e.to_string()))?;
-        let action_lower = action.to_ascii_lowercase();
-
         let canonical_request = format!(
-            "POST\n/\n\ncontent-type:application/json; charset=utf-8\nhost:{API_HOST}\nx-tc-action:{action_lower}\n\ncontent-type;host;x-tc-action\n{}",
+            "POST\n/\n\ncontent-type:application/json; charset=utf-8\nhost:{API_HOST}\n\ncontent-type;host\n{}",
             hex::encode(Sha256::digest(payload_str.as_bytes()))
         );
         let credential_scope = format!("{date}/{SERVICE}/tc3_request");
@@ -201,7 +212,7 @@ impl TencentCloudClient {
         let secret_signing = hmac_sha256(&secret_service, "tc3_request");
         let signature = hex::encode(hmac_sha256(&secret_signing, &string_to_sign));
         let authorization = format!(
-            "TC3-HMAC-SHA256 Credential={}/{}, SignedHeaders=content-type;host;x-tc-action, Signature={}",
+            "TC3-HMAC-SHA256 Credential={}/{}, SignedHeaders=content-type;host, Signature={}",
             self.secret_id, credential_scope, signature
         );
 
@@ -439,15 +450,22 @@ fn parse_u64(value: &str) -> Option<u64> {
 
 fn domain_selector(domain_id: &str, domain_name: &str) -> Result<Map<String, Value>, AppError> {
     let mut payload = Map::new();
-    let id = parse_u64(domain_id).unwrap_or(0);
-    if id > 0 {
-        payload.insert("DomainId".to_string(), serde_json::json!(id));
-        return Ok(payload);
+    let mut name = domain_name.trim();
+    if name.is_empty() {
+        let fallback = domain_id.trim();
+        if !fallback.is_empty() && fallback.contains('.') {
+            name = fallback;
+        }
     }
-    let name = domain_name.trim();
     if name.is_empty() {
         return Err(AppError::new("invalid_input", "domain is required"));
     }
+    // Domain 参数是必选的
     payload.insert("Domain".to_string(), serde_json::json!(name));
+    // DomainId 是可选的，但如果提供可以优先使用
+    let id = parse_u64(domain_id).unwrap_or(0);
+    if id > 0 {
+        payload.insert("DomainId".to_string(), serde_json::json!(id));
+    }
     Ok(payload)
 }

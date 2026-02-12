@@ -93,7 +93,7 @@ export function IntegrationsPage() {
 
   const [rainyunApiKey, setRainyunApiKey] = useState("");
   const [rainyunTest, setRainyunTest] = useState<IntegrationTestResult | null>(null);
-  const [tencentAppId, setTencentAppId] = useState("");
+  const [tencentSecretKey, setTencentSecretKey] = useState("");
   const [tencentSecretId, setTencentSecretId] = useState("");
   const [tencentTest, setTencentTest] = useState<IntegrationTestResult | null>(null);
 
@@ -267,11 +267,12 @@ export function IntegrationsPage() {
   const onTencentTest = async () => {
     setTencentTest(null);
     try {
-      const r = await testTencentCloud(tencentAppId, tencentSecretId);
+      const r = await testTencentCloud(tencentSecretId, tencentSecretKey);
       setTencentTest(r);
       if (r.ok && masterPassword) {
-        await saveTencentCloud(masterPassword, tencentAppId, tencentSecretId);
+        await saveTencentCloud(masterPassword, tencentSecretId, tencentSecretKey);
         setTencentSecretId("");
+        setTencentSecretKey("");
         await load();
         void loadProviderDomains("tencentcloud");
       }
@@ -470,7 +471,7 @@ export function IntegrationsPage() {
         case "rainyun":
           return "ApiKey";
         case "tencentcloud":
-          return "AppId & SecretId";
+          return "SecretId & SecretKey";
         default:
           return "";
       }
@@ -688,8 +689,8 @@ export function IntegrationsPage() {
                   <Input
                     label="SecretKey"
                     type="password"
-                    value={tencentAppId}
-                    onChange={(e) => setTencentAppId(e.target.value)}
+                    value={tencentSecretKey}
+                    onChange={(e) => setTencentSecretKey(e.target.value)}
                     placeholder="SecretKey"
                   />
                   <Button onClick={onTencentTest} className="w-full mt-4">
