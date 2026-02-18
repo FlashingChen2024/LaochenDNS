@@ -9,20 +9,19 @@
 
 ## 功能亮点
 
-- 多厂商接入与授权管理（Cloudflare / DNSPod）
+- 多厂商接入与授权管理（Cloudflare / DNSPod/腾讯云/百度云/阿里云/DNS.com/雨云）
 - 域名列表聚合与快速检索
 - 解析记录新增、编辑、删除与冲突策略处理
 - 本地加密存储敏感信息
+- 除DNS厂商API调用外，**无其他数据上传**。
 
 ## 技术栈
 
 - 桌面端：Tauri + Rust
 - 前端：React + Vite + TypeScript
 
-## 项目结构
-
-- desktop：Tauri 桌面应用
-- frontend：官网静态页
+## 使用
+您可以直接防伪Release页面获取安装包。安装包是由当前的仓库直接构建的，您可以放心使用。
 
 ## 开发与构建
 
