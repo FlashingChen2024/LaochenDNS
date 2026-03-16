@@ -1,11 +1,11 @@
-import { Shield, Info, HardDrive } from "lucide-react";
+import { Shield, Info, HardDrive, Sun, Moon, Palette } from "lucide-react";
 import { useApp } from "../app/AppContext";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/Card";
 import { Badge } from "../components/Badge";
 import Logo from "../assets/logo.png";
 
 export function SettingsPage() {
-  const { vaultStatus } = useApp();
+  const { vaultStatus, theme, setTheme } = useApp();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -17,6 +17,44 @@ export function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card className="h-full">
+          <CardHeader className="border-b border-[var(--color-border)] p-6">
+            <div className="flex items-center gap-2">
+              <Palette className="w-5 h-5 text-[var(--color-primary)]" />
+              <CardTitle>外观设置</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between p-4 bg-[var(--color-bg)] border border-[var(--color-border)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">主题模式</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border transition-all duration-200 ${
+                    theme === "light"
+                      ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                      : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                  浅色
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider border transition-all duration-200 ${
+                    theme === "dark"
+                      ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                      : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                  深色
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="h-full">
           <CardHeader className="border-b border-[var(--color-border)] p-6">
             <div className="flex items-center gap-2">
