@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Inter', system-ui, sans-serif;
@@ -18,17 +20,15 @@
     --color-border: #E5E5E5;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-bg: #0F0F0F; /* Dark Matte */
-      --color-surface: #1A1A1A;
-      --color-text: #F0F0F0;
-      --color-text-secondary: #888888;
-      --color-primary: #F97316; /* Brighter Orange for dark mode */
-      --color-accent: #FFFFFF;
-      --color-destructive: #EF4444;
-      --color-border: #2A2A2A;
-    }
+  :root.dark {
+    --color-bg: #0F0F0F; /* Dark Matte */
+    --color-surface: #1A1A1A;
+    --color-text: #F0F0F0;
+    --color-text-secondary: #888888;
+    --color-primary: #F97316; /* Brighter Orange for dark mode */
+    --color-accent: #FFFFFF;
+    --color-destructive: #EF4444;
+    --color-border: #2A2A2A;
   }
 
   body {

@@ -81,13 +81,32 @@ function writeRecordsCache(cacheKey: string, rows: DnsRecord[]) {
   }
 }
 
-function readDomainsCache() {
+export function readDomainsCache() {
   try {
-    const raw = localStorage.getItem(DOMAINS_CACHE_PREFIX);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { rows?: DomainItem[] };
-    if (!parsed || !Array.isArray(parsed.rows)) return null;
-    return parsed.rows;
+    const latestByDomain = new Map<string, { item: DomainItem; updatedAt: number }>();
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const cacheKey = localStorage.key(index);
+      if (!cacheKey?.startsWith(`${DOMAINS_CACHE_PREFIX}:`)) continue;
+
+      const raw = localStorage.getItem(cacheKey);
+      if (!raw) continue;
+
+      const parsed = JSON.parse(raw) as { updatedAt?: number; rows?: DomainItem[] };
+      if (!parsed || !Array.isArray(parsed.rows)) continue;
+
+      const updatedAt = typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0;
+      for (const item of parsed.rows) {
+        if (!item?.provider_id) continue;
+        const domainKey = `${item.provider}:${item.provider_id}`;
+        const previous = latestByDomain.get(domainKey);
+        if (!previous || updatedAt >= previous.updatedAt) {
+          latestByDomain.set(domainKey, { item, updatedAt });
+        }
+      }
+    }
+
+    return [...latestByDomain.values()].map(({ item }) => item);
   } catch {
     return null;
   }
@@ -412,6 +431,13 @@ export function RecordModal({
     () => RECORD_TYPES.map((t) => ({ value: t, label: t })),
     [],
   );
+  const conflictStrategyOptions = useMemo<DropdownOption<ConflictStrategy>[]>(
+    () => [
+      { value: "do_not_create", label: "不创建 (失败)" },
+      { value: "overwrite", label: "覆盖现有" },
+    ],
+    [],
+  );
 
   const validate = () => {
     const trimmedContent = content.trim();
@@ -559,12 +585,8 @@ export function RecordModal({
             <label className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">冲突策略</label>
             <Dropdown
               value={conflictStrategy}
-              options={[
-                { value: "do_not_create", label: "不创建 (失败)" },
-                { value: "keep_existing", label: "保留现有 (忽略)" },
-                { value: "replace_existing", label: "替换现有" },
-              ]}
-              onChange={(v) => setConflictStrategy(v as ConflictStrategy)}
+              options={conflictStrategyOptions}
+              onChange={setConflictStrategy}
               className="w-full"
             />
           </div>

@@ -9,6 +9,8 @@ export type Notice = {
   message: string;
 };
 
+export type ThemeMode = "light" | "dark";
+
 type AppContextValue = {
   masterPassword: string | null;
   setMasterPassword: (value: string | null) => void;
@@ -19,24 +21,34 @@ type AppContextValue = {
   dismissNotice: (id: string) => void;
   notifySuccess: (message: string) => void;
   notifyError: (error: unknown) => void;
+  theme: ThemeMode;
+  setTheme: (mode: ThemeMode) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [masterPassword, setMasterPasswordState] = useState<string | null>(() => {
-    return sessionStorage.getItem("laochen_dns_master_password");
-  });
+  const [masterPassword, setMasterPasswordState] = useState<string | null>(null);
   const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
 
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
+    return (localStorage.getItem("laochen_dns_theme") as ThemeMode) || "light";
+  });
+
+  const setTheme = useCallback((mode: ThemeMode) => {
+    setThemeState(mode);
+    localStorage.setItem("laochen_dns_theme", mode);
+    document.documentElement.classList.toggle("dark", mode === "dark");
+  }, []);
+
+  // Apply theme on mount
+  React.useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, []);
+
   const setMasterPassword = useCallback((value: string | null) => {
     setMasterPasswordState(value);
-    if (value) {
-      sessionStorage.setItem("laochen_dns_master_password", value);
-    } else {
-      sessionStorage.removeItem("laochen_dns_master_password");
-    }
   }, []);
 
   const refreshVaultStatus = useCallback(async () => {
@@ -81,8 +93,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dismissNotice,
       notifySuccess,
       notifyError,
+      theme,
+      setTheme,
     }),
-    [masterPassword, vaultStatus, refreshVaultStatus, notices, pushNotice, dismissNotice, notifySuccess, notifyError],
+    [masterPassword, vaultStatus, refreshVaultStatus, notices, pushNotice, dismissNotice, notifySuccess, notifyError, theme, setTheme],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
