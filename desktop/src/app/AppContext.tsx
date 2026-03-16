@@ -28,9 +28,7 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [masterPassword, setMasterPasswordState] = useState<string | null>(() => {
-    return sessionStorage.getItem("laochen_dns_master_password");
-  });
+  const [masterPassword, setMasterPasswordState] = useState<string | null>(null);
   const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
 
@@ -51,11 +49,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setMasterPassword = useCallback((value: string | null) => {
     setMasterPasswordState(value);
-    if (value) {
-      sessionStorage.setItem("laochen_dns_master_password", value);
-    } else {
-      sessionStorage.removeItem("laochen_dns_master_password");
-    }
   }, []);
 
   const refreshVaultStatus = useCallback(async () => {

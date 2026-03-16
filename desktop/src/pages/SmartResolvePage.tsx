@@ -42,6 +42,10 @@ type DomainMatch = {
   hostName: string;
 };
 
+export function buildRecordConflictKey(name: string, recordType: string) {
+  return `${name.trim().toLowerCase()}::${recordType.trim().toUpperCase()}`;
+}
+
 function normalizeDomain(input: string) {
   return input.trim().toLowerCase().replace(/\.$/, "");
 }
@@ -110,6 +114,7 @@ export function SmartResolvePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [step, setStep] = useState<"input" | "config">("input");
   const [matchedDomain, setMatchedDomain] = useState<DomainMatch | null>(null);
+  const [existingRecordKeys, setExistingRecordKeys] = useState<string[]>([]);
 
   const [recordType, setRecordType] = useState<(typeof RECORD_TYPES)[number]>("A");
   const [content, setContent] = useState("");
@@ -156,6 +161,7 @@ export function SmartResolvePage() {
     if (!masterPassword) return;
     setError(null);
     setSuccess(null);
+    setExistingRecordKeys([]);
     const normalized = normalizeDomain(domainInput);
     if (!normalized || !normalized.includes(".")) {
       setError("请输入完整域名，例如 webtest.chenyuxia.com");
@@ -182,12 +188,7 @@ export function SmartResolvePage() {
         match.domain.provider_id,
         match.domain.name,
       );
-      const hostLower = match.hostName.toLowerCase();
-      const exists = records.some((r) => r.name.toLowerCase() === hostLower);
-      if (exists) {
-        setError("该主机名已存在记录，避免重复添加");
-        return;
-      }
+      setExistingRecordKeys(records.map((record) => buildRecordConflictKey(record.name, record.record_type)));
       setMatchedDomain(match);
       setStep("config");
       setRecordType("A");
@@ -248,6 +249,11 @@ export function SmartResolvePage() {
       setError(validationError);
       return;
     }
+    const conflictKey = buildRecordConflictKey(matchedDomain.hostName, recordType);
+    if (existingRecordKeys.includes(conflictKey)) {
+      setError("该主机名已存在相同类型的记录，避免重复添加");
+      return;
+    }
     setBusy(true);
     try {
       const request: RecordCreateRequest = {
@@ -270,6 +276,7 @@ export function SmartResolvePage() {
         matchedDomain.domain.name,
         request,
       );
+      setExistingRecordKeys((prev) => (prev.includes(conflictKey) ? prev : [...prev, conflictKey]));
       notifySuccess("智能解析记录创建成功");
       setSuccess("记录已成功添加，可继续配置其他类型记录");
       setContent("");
@@ -339,6 +346,7 @@ export function SmartResolvePage() {
                 <Button variant="ghost" size="sm" onClick={() => {
                   setStep("input");
                   setMatchedDomain(null);
+                  setExistingRecordKeys([]);
                   setError(null);
                   setSuccess(null);
                 }} className="text-xs uppercase tracking-wide">
