@@ -142,16 +142,15 @@ export async function getIntegrations(masterPassword: string): Promise<Integrati
   return invoke("integrations_get", { masterPassword });
 }
 
-export async function testCloudflare(email: string, apiKey: string): Promise<IntegrationTestResult> {
-  return invoke("cloudflare_test", { email, apiKey });
+export async function testCloudflare(apiToken: string): Promise<IntegrationTestResult> {
+  return invoke("cloudflare_test", { apiToken });
 }
 
 export async function saveCloudflare(
   masterPassword: string,
-  email: string,
-  apiKey: string,
+  apiToken: string,
 ): Promise<void> {
-  return invoke("cloudflare_save", { masterPassword, email, apiKey });
+  return invoke("cloudflare_save", { masterPassword, apiToken });
 }
 
 export async function clearCloudflare(masterPassword: string): Promise<void> {

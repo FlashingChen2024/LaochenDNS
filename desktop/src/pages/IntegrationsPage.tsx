@@ -39,6 +39,111 @@ import {
   type Provider,
 } from "../lib/api";
 
+type CredentialGuide = {
+  title: string;
+  steps: string[];
+  note: string;
+};
+
+const credentialGuides: Record<Provider, CredentialGuide> = {
+  cloudflare: {
+    title: "如何获取 API Token",
+    steps: [
+      "登录 Cloudflare Dashboard，进入个人资料中的 API Tokens 页面。",
+      "选择 Edit zone DNS 模板创建 Token。",
+      "将 Zone Resources 限制到要管理的域名。",
+      "复制后粘贴到下方 API Token 输入框。",
+    ],
+    note: "Cloudflare 只会完整展示一次 Token，请创建后立即复制并妥善保存。",
+  },
+  dnspod: {
+    title: "如何获取 Token ID 和 Token Secret",
+    steps: [
+      "登录 DNSPod 控制台，进入账号中心的 API Token 管理页面。",
+      "创建用于 DNS 解析管理的 Token。",
+      "复制 Token ID 到 ID 输入框。",
+      "复制 Token Secret 到 Token 输入框。",
+    ],
+    note: "请保留解析记录读取和修改权限，避免使用无关权限。",
+  },
+  aliyun: {
+    title: "如何获取 AccessKey",
+    steps: [
+      "登录阿里云控制台，进入 RAM 访问控制。",
+      "为当前账号或 RAM 用户创建 AccessKey。",
+      "复制 AccessKey ID 到 AccessKeyId 输入框。",
+      "复制 AccessKey Secret 到 AccessKeySecret 输入框。",
+    ],
+    note: "建议使用只授予云解析 DNS 管理权限的 RAM 用户。",
+  },
+  huawei: {
+    title: "如何获取 X-Auth-Token",
+    steps: [
+      "登录华为云并通过 IAM/API Explorer 获取用户 Token。",
+      "选择 DNS 服务可访问的项目或区域。",
+      "复制响应中的 X-Subject-Token。",
+      "粘贴到下方 X-Auth-Token 输入框。",
+    ],
+    note: "Token 通常有有效期，失效后需要重新获取并保存。",
+  },
+  baidu: {
+    title: "如何获取百度云 AccessKey",
+    steps: [
+      "登录百度智能云控制台，进入安全认证或 Access Key 管理。",
+      "创建可访问 DNS 服务的 AccessKey。",
+      "复制 AccessKeyId 到第一个输入框。",
+      "复制 SecretAccessKey 到第二个输入框。",
+    ],
+    note: "建议为 DNS 管理创建独立密钥，方便后续轮换。",
+  },
+  dnscom: {
+    title: "如何获取 DNS.COM API 凭据",
+    steps: [
+      "登录 DNS.COM 控制台。",
+      "进入账号或开放 API 的密钥管理页面。",
+      "复制 ApiKey 到第一个输入框。",
+      "复制 ApiSecret 到第二个输入框。",
+    ],
+    note: "请确认 API 凭据拥有域名和解析记录管理权限。",
+  },
+  rainyun: {
+    title: "如何获取雨云 ApiKey",
+    steps: [
+      "登录雨云控制台。",
+      "进入账号设置或开放 API 的密钥页面。",
+      "创建或复制用于 DNS 管理的 ApiKey。",
+      "粘贴到下方 ApiKey 输入框。",
+    ],
+    note: "如果验证失败，请检查 ApiKey 是否启用并具备 DNS 权限。",
+  },
+  tencentcloud: {
+    title: "如何获取腾讯云 SecretId 和 SecretKey",
+    steps: [
+      "登录腾讯云控制台，进入访问管理 CAM。",
+      "在 API 密钥管理中创建或查看密钥。",
+      "复制 SecretId 到第一个输入框。",
+      "复制 SecretKey 到第二个输入框。",
+    ],
+    note: "建议使用只授予 DNSPod/云解析权限的子用户密钥。",
+  },
+};
+
+function CredentialGuideCard({ guide }: { guide: CredentialGuide }) {
+  return (
+    <div className="border border-[var(--color-border)] bg-[var(--color-bg)] p-4 space-y-3">
+      <div className="text-sm font-bold text-[var(--color-accent)] uppercase tracking-wide">{guide.title}</div>
+      <ol className="list-decimal list-inside space-y-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+        {guide.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <div className="text-xs leading-relaxed text-orange-700 bg-orange-50 border border-orange-200 p-3">
+        {guide.note}
+      </div>
+    </div>
+  );
+}
+
 
 
 function StatusBadge({ status }: { status: DomainItem["status"] }) {
@@ -68,8 +173,7 @@ export function IntegrationsPage() {
   const [domainsBusy, setDomainsBusy] = useState(false);
   const [domainsError, setDomainsError] = useState<string | null>(null);
 
-  const [cfEmail, setCfEmail] = useState("");
-  const [cfApiKey, setCfApiKey] = useState("");
+  const [cfApiToken, setCfApiToken] = useState("");
   const [cfTest, setCfTest] = useState<IntegrationTestResult | null>(null);
 
   const [dpTokenId, setDpTokenId] = useState("");
@@ -155,11 +259,11 @@ export function IntegrationsPage() {
   const onCfTest = async () => {
     setCfTest(null);
     try {
-      const r = await testCloudflare(cfEmail, cfApiKey);
+      const r = await testCloudflare(cfApiToken);
       setCfTest(r);
       if (r.ok && masterPassword) {
-        await saveCloudflare(masterPassword, cfEmail, cfApiKey);
-        setCfApiKey("");
+        await saveCloudflare(masterPassword, cfApiToken);
+        setCfApiToken("");
         await load();
         void loadProviderDomains("cloudflare");
       }
@@ -457,7 +561,7 @@ export function IntegrationsPage() {
     const subtitle = (() => {
       switch (activeProvider) {
         case "cloudflare":
-          return "Global API Key & Email";
+          return "API Token";
         case "dnspod":
           return "Token ID & Token Secret";
         case "aliyun":
@@ -476,6 +580,7 @@ export function IntegrationsPage() {
           return "";
       }
     })();
+    const guide = credentialGuides[activeProvider];
     const testResult = (() => {
       switch (activeProvider) {
         case "cloudflare":
@@ -569,20 +674,16 @@ export function IntegrationsPage() {
                 </div>
               )}
 
+              <CredentialGuideCard guide={guide} />
+
               {activeProvider === "cloudflare" ? (
                 <div className="space-y-4">
                   <Input
-                    label="Email"
-                    value={cfEmail}
-                    onChange={(e) => setCfEmail(e.target.value)}
-                    placeholder="example@gmail.com"
-                  />
-                  <Input
-                    label="Global API Key"
+                    label="API Token"
                     type="password"
-                    value={cfApiKey}
-                    onChange={(e) => setCfApiKey(e.target.value)}
-                    placeholder="Global API Key"
+                    value={cfApiToken}
+                    onChange={(e) => setCfApiToken(e.target.value)}
+                    placeholder="Cloudflare API Token"
                   />
                   <Button onClick={onCfTest} className="w-full mt-4">
                     验证并保存

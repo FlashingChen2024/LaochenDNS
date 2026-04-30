@@ -50,17 +50,16 @@ pub struct PlainVault {
     pub tencentcloud: Option<TencentCloudCreds>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CloudflareCreds {
-    pub email: String,
-    pub api_key: String,
+    #[serde(default)]
+    pub api_token: String,
     pub last_verified_at: Option<String>,
 }
 
 impl Zeroize for CloudflareCreds {
     fn zeroize(&mut self) {
-        self.email.zeroize();
-        self.api_key.zeroize();
+        self.api_token.zeroize();
         self.last_verified_at.zeroize();
     }
 }

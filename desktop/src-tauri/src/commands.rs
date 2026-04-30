@@ -108,8 +108,8 @@ pub fn integrations_get(app: AppHandle, master_password: String) -> Result<Integ
 
 
 #[tauri::command]
-pub async fn cloudflare_test(email: String, api_key: String) -> Result<IntegrationTestResult, AppError> {
-    let client = CloudflareClient::new(email, api_key)?;
+pub async fn cloudflare_test(api_token: String) -> Result<IntegrationTestResult, AppError> {
+    let client = CloudflareClient::new(api_token)?;
     match client.test().await {
         Ok(_) => Ok(IntegrationTestResult {
             ok: true,
@@ -126,17 +126,15 @@ pub async fn cloudflare_test(email: String, api_key: String) -> Result<Integrati
 pub async fn cloudflare_save(
     app: AppHandle,
     master_password: String,
-    email: String,
-    api_key: String,
+    api_token: String,
 ) -> Result<(), AppError> {
-    let client = CloudflareClient::new(email.clone(), api_key.clone())?;
+    let client = CloudflareClient::new(api_token.clone())?;
     client.test().await?;
 
     let (file, mut plain) = vault::decrypt_vault(&app, &master_password)?;
     let now = Utc::now().to_rfc3339();
     plain.cloudflare = Some(CloudflareCreds {
-        email,
-        api_key,
+        api_token,
         last_verified_at: Some(now),
     });
 
@@ -486,7 +484,7 @@ pub async fn domains_list(
 
     if wants_cloudflare {
         if let Some(cf) = cf_creds {
-            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            let cf_client = CloudflareClient::new(cf.api_token.clone())?;
             match cf_client.list_domains().await {
                 Ok(mut v) => items.append(&mut v),
                 Err(e) => items.push(make_error_item(Provider::Cloudflare, "Cloudflare", e)),
@@ -660,7 +658,7 @@ pub async fn records_list(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            let cf_client = CloudflareClient::new(cf.api_token.clone())?;
             cf_client.list_records(&domain_id, &domain_name).await
         }
         Provider::Dnspod => {
@@ -732,7 +730,7 @@ pub async fn record_create(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            let cf_client = CloudflareClient::new(cf.api_token.clone())?;
             let conflict_ids = cf_client
                 .find_conflict_ids(&domain_id, &domain_name, &req.record_type, &req.name)
                 .await?;
@@ -1111,7 +1109,7 @@ pub async fn record_update(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            let cf_client = CloudflareClient::new(cf.api_token.clone())?;
             cf_client.update_record(&domain_id, &domain_name, &req).await
         }
         Provider::Dnspod => {
@@ -1181,7 +1179,7 @@ pub async fn record_delete(
             let cf = plain
                 .cloudflare
                 .ok_or_else(|| AppError::new("not_configured", "Cloudflare is not configured"))?;
-            let cf_client = CloudflareClient::new(cf.email.clone(), cf.api_key.clone())?;
+            let cf_client = CloudflareClient::new(cf.api_token.clone())?;
             cf_client.delete_record(&domain_id, &record_id).await
         }
         Provider::Dnspod => {
