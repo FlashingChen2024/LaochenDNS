@@ -54,6 +54,18 @@ cd desktop
 npm run tauri build
 ```
 
+## 发布安装包
+
+项目通过 GitHub Actions 自动构建 Linux、Windows 和 macOS 安装包。发布新版本时，在本地确认 `main` 已经是要发布的代码，然后创建并推送一个 `v` 开头的 tag：
+
+```bash
+git pull
+git tag v2.2.1
+git push origin v2.2.1
+```
+
+推送 tag 后，GitHub Actions 会自动创建草稿 Release，并上传各平台安装包。检查产物无误后，在 GitHub Release 页面点击 Publish release 即可公开发布。
+
 ## 许可证
 
 MIT License
