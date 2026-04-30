@@ -23,6 +23,20 @@
 ## 使用
 您可以直接防伪Release页面获取安装包。安装包是由当前的仓库直接构建的，您可以放心使用。
 
+## Cloudflare 接入
+
+Cloudflare 目前建议新用户使用 API Token，而不是权限范围更大的 Global API Key。LaoChenDNS 的 Cloudflare 接入只需要一个 API Token。
+
+申请步骤：
+
+1. 登录 Cloudflare Dashboard，进入个人资料里的 API Tokens 页面。
+2. 点击创建 Token，优先选择 `Edit zone DNS` 模板。
+3. 权限至少需要允许读取 Zone 信息并编辑 DNS 记录；建议把 Zone Resources 限制到需要管理的域名。
+4. 创建后立即复制 Token；Cloudflare 只会完整展示一次。
+5. 打开 LaoChenDNS 的 Cloudflare 配置页，将 Token 粘贴到 `API Token` 输入框，点击“验证并保存”。
+
+如需手动配置权限，请确保 Token 能访问 Zone 列表，并能对目标 Zone 的 DNS Records 执行读取、新增、编辑和删除操作。
+
 ## 开发与构建
 
 桌面端开发：

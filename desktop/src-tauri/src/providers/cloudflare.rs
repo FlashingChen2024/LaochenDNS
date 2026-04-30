@@ -10,12 +10,11 @@ const API_BASE: &str = "https://api.cloudflare.com/client/v4";
 
 pub struct CloudflareClient {
     client: reqwest::Client,
-    email: String,
-    api_key: String,
+    api_token: String,
 }
 
 impl CloudflareClient {
-    pub fn new(email: String, api_key: String) -> Result<Self, AppError> {
+    pub fn new(api_token: String) -> Result<Self, AppError> {
         let client = reqwest::Client::builder()
             .user_agent("LaoChenDNS/0.1.0")
             .timeout(Duration::from_secs(30))
@@ -24,22 +23,23 @@ impl CloudflareClient {
 
         Ok(Self {
             client,
-            email,
-            api_key,
+            api_token,
         })
     }
 
     fn headers(&self) -> Result<HeaderMap, AppError> {
         let mut headers = HeaderMap::new();
         headers.insert(
-            "X-Auth-Email",
-            HeaderValue::from_str(&self.email).map_err(|e| AppError::new("invalid_input", e.to_string()))?,
-        );
-        headers.insert(
-            "X-Auth-Key",
-            HeaderValue::from_str(&self.api_key).map_err(|e| AppError::new("invalid_input", e.to_string()))?,
+            "Authorization",
+            HeaderValue::from_str(&format!("Bearer {}", self.api_token))
+                .map_err(|e| AppError::new("invalid_input", e.to_string()))?,
         );
         Ok(headers)
+    }
+
+    #[cfg(test)]
+    fn auth_headers_for_test(&self) -> Result<HeaderMap, AppError> {
+        self.headers()
     }
 
     pub async fn test(&self) -> Result<(), AppError> {
@@ -209,6 +209,10 @@ impl CloudflareClient {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "cloudflare_tests.rs"]
+mod cloudflare_tests;
 
 fn normalize_full_name(zone_name: &str, host: &str) -> String {
     if host == "@" || host == zone_name {

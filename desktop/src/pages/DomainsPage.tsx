@@ -207,7 +207,7 @@ export function DomainsPage() {
             placeholder="搜索域名..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:w-60"
+            containerClassName="w-full md:w-60"
             icon={<Search className="w-4 h-4" />}
           />
           <Dropdown 
