@@ -3,3 +3,5 @@
 !desktop/**
 !README.md
 !.gitignore
+!.github/
+!.github/**
