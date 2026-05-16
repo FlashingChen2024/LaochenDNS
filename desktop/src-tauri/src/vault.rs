@@ -52,7 +52,7 @@ pub struct PlainVault {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CloudflareCreds {
-    #[serde(default)]
+    #[serde(default, alias = "api_key")]
     pub api_token: String,
     pub last_verified_at: Option<String>,
 }
@@ -413,4 +413,21 @@ fn decode_b64_any(value: &str) -> Result<Vec<u8>, AppError> {
     base64::engine::general_purpose::STANDARD
         .decode(value)
         .map_err(|e| AppError::new("parse_error", e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloudflare_credentials_accept_legacy_email_api_key_shape() {
+        let plain: PlainVault = serde_json::from_str(
+            r#"{"cloudflare":{"email":"user@example.com","api_key":"legacy-key","last_verified_at":null}}"#,
+        )
+        .expect("legacy vault JSON should deserialize");
+
+        let cloudflare = plain.cloudflare.expect("cloudflare credentials should exist");
+        assert_eq!(cloudflare.api_token, "legacy-key");
+        assert_eq!(cloudflare.last_verified_at, None);
+    }
 }
